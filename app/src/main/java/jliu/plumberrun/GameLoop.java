@@ -1,11 +1,12 @@
 package jliu.plumberrun;
 
 import android.graphics.Canvas;
+import android.util.Log;
 import android.view.SurfaceHolder;
 
 class GameLoop extends Thread{
     private Game game;
-    private SurfaceHolder surfaceHolder;
+    private final SurfaceHolder surfaceHolder;
     private boolean running = false;
     private double averageUPS, averageFPS;
     private final double TARGET_UPS = 36;
@@ -69,17 +70,15 @@ class GameLoop extends Thread{
             if(elapsedTime > 1000) {
                 averageUPS = updateCount * elapsedTime * 1E-3;
                 averageFPS = frameCount * elapsedTime * 1E-3;
+                printUPSFPS();
                 updateCount = frameCount = 0;
                 startTime = System.currentTimeMillis();
             }
         }
     }
 
-    public double getAverageUPS() {
-        return averageUPS;
-    }
-
-    public double getAverageFPS() {
-        return averageFPS;
+    public void printUPSFPS(){
+        Log.i("UPS: ", Double.toString(averageUPS));
+        Log.i("FPS: ", Double.toString(averageFPS));
     }
 }
