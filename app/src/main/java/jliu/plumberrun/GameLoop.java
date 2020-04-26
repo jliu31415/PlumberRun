@@ -8,7 +8,7 @@ class GameLoop extends Thread{
     private SurfaceHolder surfaceHolder;
     private boolean running = false;
     private double averageUPS, averageFPS;
-    private final double TARGET_UPS = 30;
+    private final double TARGET_UPS = 36;
 
     public GameLoop(Game game, SurfaceHolder surfaceHolder) {
         this.game = game;
