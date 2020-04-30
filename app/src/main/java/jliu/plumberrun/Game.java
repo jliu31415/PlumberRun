@@ -4,16 +4,23 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Rect;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import androidx.core.content.ContextCompat;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Scanner;
+
 class Game extends SurfaceView implements SurfaceHolder.Callback {
-    //canvas broken as an n x 26 grid, to be rescaled with canvasScale variables
     public static double canvasScaleX, canvasScaleY;    //landscape reference
-    private GameLoop gameLoop;
+    private final GameLoop gameLoop;
     private final Player player;
     private final LevelCreator levelCreator;
 
@@ -23,16 +30,31 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         SurfaceHolder surfaceHolder = getHolder();
         surfaceHolder.addCallback(this);
 
-        gameLoop = new GameLoop(this, surfaceHolder);
         Bitmap plumber_running = BitmapFactory.decodeResource(getResources(), R.drawable.plumber_running);
         Bitmap tiles_platform = BitmapFactory.decodeResource(getResources(), R.drawable.tiles_platform);
-        levelCreator = new LevelCreator(tiles_platform);
         player = new Player(plumber_running);
+        levelCreator = new LevelCreator(tiles_platform);
+        gameLoop = new GameLoop(this, surfaceHolder, levelCreator, parseAllLevels());
+    }
+
+    private ArrayList<ArrayList<Integer[]>> parseAllLevels() {
+        ArrayList<ArrayList<Integer[]>> allLevels = new ArrayList<>();
+        InputStream is = this.getResources().openRawResource(R.raw.test_level);
+        Scanner scan = new Scanner(is);
+        ArrayList<Integer[]> level = new ArrayList<>();
+        while (scan.hasNext()) {
+            int counter = 0;
+            Integer[] column = new Integer[16];
+            for (int i = 0; i < 16; i++) column[counter++] = scan.nextInt();
+            level.add(column);
+        }
+        allLevels.add(level);
+        return allLevels;
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        switch(event.getAction()){
+        switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 player.jump();
         }
@@ -42,8 +64,9 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        canvasScaleX = holder.getSurfaceFrame().width()/1794;   //dimensions of pixel 2 canvas
-        canvasScaleY = holder.getSurfaceFrame().width()/1080;   //dimensions of pixel 2 canvas
+        //dimensions of Google Pixel 2
+        canvasScaleX = holder.getSurfaceFrame().width() / 1794;
+        canvasScaleY = holder.getSurfaceFrame().width() / 1080;
         gameLoop.startLoop();
     }
 
@@ -65,5 +88,11 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
     public void update() {
         player.update();
+    }
+
+    //scale sprite positions for other canvas dimensions unequal to 1080 x 1794 (landscape)
+    public static Rect scale(Rect position) {
+        return new Rect((int) (Game.canvasScaleX * position.left), (int) (Game.canvasScaleY * position.top),
+                (int) (Game.canvasScaleX * position.right), (int) (Game.canvasScaleY * position.bottom));
     }
 }

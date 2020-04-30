@@ -1,19 +1,29 @@
 package jliu.plumberrun;
 
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.os.Build;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
-class GameLoop extends Thread{
-    private Game game;
-    private final SurfaceHolder surfaceHolder;
-    private boolean running = false;
-    private double averageUPS, averageFPS;
-    private final double TARGET_UPS = 36;
+import androidx.annotation.RequiresApi;
 
-    public GameLoop(Game game, SurfaceHolder surfaceHolder) {
+import java.util.ArrayList;
+
+class GameLoop extends Thread {
+    private final Game game;
+    private final SurfaceHolder surfaceHolder;
+    private final LevelCreator levelCreator;
+    private final ArrayList<ArrayList<Integer[]>> levels;
+    private final double TARGET_UPS = 36;
+    private double averageUPS, averageFPS;
+    private boolean running = false;
+
+    public GameLoop(Game game, SurfaceHolder surfaceHolder, LevelCreator levelCreator, ArrayList<ArrayList<Integer[]>> levels) {
         this.game = game;
         this.surfaceHolder = surfaceHolder;
+        this.levelCreator = levelCreator;
+        this.levels = levels;
     }
 
     public void startLoop() {
@@ -21,27 +31,29 @@ class GameLoop extends Thread{
         start();
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     @Override
     public void run() {
         super.run();
         Canvas canvas = null;
+        levelCreator.createLevel(levels.get(0));
 
         int updateCount = 0, frameCount = 0;
         long startTime, elapsedTime, sleepTime;
         startTime = System.currentTimeMillis();
 
-        while(running){
-            try{
+        while (running) {
+            try {
                 canvas = surfaceHolder.lockCanvas();
                 synchronized (surfaceHolder) {
                     game.update();
                     updateCount++;
                     game.draw(canvas);
                 }
-            } catch (IllegalArgumentException e){
+            } catch (IllegalArgumentException e) {
                 e.printStackTrace();
             } finally {
-                if(canvas != null) {
+                if (canvas != null) {
                     try {
                         surfaceHolder.unlockCanvasAndPost(canvas);
                         frameCount++;
@@ -52,22 +64,22 @@ class GameLoop extends Thread{
             }
 
             elapsedTime = System.currentTimeMillis() - startTime;
-            sleepTime = (long)(updateCount * (1E+3/TARGET_UPS) - elapsedTime);
-            if(sleepTime > 0){
-                try{
+            sleepTime = (long) (updateCount * (1E+3 / TARGET_UPS) - elapsedTime);
+            if (sleepTime > 0) {
+                try {
                     sleep(sleepTime);
-                }catch(InterruptedException e){
+                } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
-            while(sleepTime < 0) {
+            while (sleepTime < 0) {
                 game.update();
                 updateCount++;
                 elapsedTime = System.currentTimeMillis() - startTime;
                 sleepTime = (long) (updateCount * (1E+3 / TARGET_UPS) - elapsedTime);
             }
 
-            if(elapsedTime > 1000) {
+            if (elapsedTime > 1000) {
                 averageUPS = updateCount * elapsedTime * 1E-3;
                 averageFPS = frameCount * elapsedTime * 1E-3;
                 printUPSFPS();
@@ -77,7 +89,7 @@ class GameLoop extends Thread{
         }
     }
 
-    public void printUPSFPS(){
+    public void printUPSFPS() {
         Log.i("UPS: ", Double.toString(averageUPS));
         Log.i("FPS: ", Double.toString(averageFPS));
     }

@@ -5,24 +5,20 @@ import android.graphics.Canvas;
 import android.graphics.Rect;
 
 public class Tile {
-    private Bitmap tileSprite;
-    private Rect position;
-    private int posX, posY;
-    private int tileSize; //26 tiles to fill width of canvas (landscape), 69 x 69 pixels
+    private final Bitmap tileSprite;
+    private Rect spritePosition;
+    private int tileSize = 69; //26 tiles to fill width of landscape canvas (15.65 to fill height)
 
-    public Tile(Bitmap tileSprite, int posX, int posY){
+    public Tile(Bitmap tileSprite, int posX, int posY) {
         this.tileSprite = tileSprite;
-        this.posX = posX;
-        this.posY = posY;
+        spritePosition = new Rect(posX, posY, posX + tileSize, posY + tileSize);
     }
 
-    public void drawTile(Canvas canvas){
-        tileSize = (int)(69*Game.canvasScaleY);
-        //(posX, posY) = (0 0) at bottom left corner of canvas
-        int adjustedPosX = (tileSize*posX);
-        int adjustedPosY = (int)(1080*Game.canvasScaleY - tileSize*posY);
-        //adjustedPosX, adjustedPosY gives bottom left corner of spritePosition rectangle
-        position = new Rect(adjustedPosX, adjustedPosY - tileSize, adjustedPosX + tileSize, adjustedPosY);
-        canvas.drawBitmap(tileSprite, null, position, null);
+    public void drawTile(Canvas canvas) {
+        canvas.drawBitmap(tileSprite, null, Game.scale(spritePosition), null);
+    }
+
+    public Rect getBounds() {
+        return spritePosition;
     }
 }
