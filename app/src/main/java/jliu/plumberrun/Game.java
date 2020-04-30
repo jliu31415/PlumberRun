@@ -5,21 +5,20 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Rect;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import androidx.core.content.ContextCompat;
 
-import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Scanner;
 
 class Game extends SurfaceView implements SurfaceHolder.Callback {
     public static double canvasScaleX, canvasScaleY;    //landscape reference
+    public static Rect cameraFrame;
+    private final int cameraOffsetX = -138;
     private final GameLoop gameLoop;
     private final Player player;
     private final LevelCreator levelCreator;
@@ -30,10 +29,10 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         SurfaceHolder surfaceHolder = getHolder();
         surfaceHolder.addCallback(this);
 
-        Bitmap plumber_running = BitmapFactory.decodeResource(getResources(), R.drawable.plumber_running);
         Bitmap tiles_platform = BitmapFactory.decodeResource(getResources(), R.drawable.tiles_platform);
-        player = new Player(plumber_running);
+        Bitmap plumber_running = BitmapFactory.decodeResource(getResources(), R.drawable.plumber_running);
         levelCreator = new LevelCreator(tiles_platform);
+        player = new Player(plumber_running, levelCreator);
         gameLoop = new GameLoop(this, surfaceHolder, levelCreator, parseAllLevels());
     }
 
@@ -67,6 +66,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         //dimensions of Google Pixel 2
         canvasScaleX = holder.getSurfaceFrame().width() / 1794;
         canvasScaleY = holder.getSurfaceFrame().width() / 1080;
+        cameraFrame = new Rect(0, 0, (int) (1794 * Game.canvasScaleY), (int) (1080 * Game.canvasScaleX));
         gameLoop.startLoop();
     }
 
@@ -80,14 +80,18 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     public void draw(Canvas canvas) {
+        canvas.translate(-player.getPosX() - cameraOffsetX, 0);
         super.draw(canvas);
         canvas.drawColor(ContextCompat.getColor(getContext(), R.color.primary_light));
         player.draw(canvas);
         levelCreator.draw(canvas);
+        canvas.translate(player.getPosX() + cameraOffsetX, 0);
     }
 
     public void update() {
         player.update();
+        if (player.getPosX() > 0)
+            cameraFrame.offsetTo(player.getPosX() + cameraOffsetX, 0);
     }
 
     //scale sprite positions for other canvas dimensions unequal to 1080 x 1794 (landscape)

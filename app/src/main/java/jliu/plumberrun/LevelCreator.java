@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.os.Build;
+import android.util.Log;
 
 import androidx.annotation.RequiresApi;
 
@@ -12,7 +13,7 @@ import java.util.ArrayList;
 class LevelCreator {
     private final Bitmap tileSprite;
     private final int spriteWidth, spriteHeight;
-    private static ArrayList<Tile> tiles;
+    private ArrayList<Tile> tiles;
 
     public LevelCreator(Bitmap tiles_platform) {
         tileSprite = tiles_platform;
@@ -24,19 +25,24 @@ class LevelCreator {
     @RequiresApi(api = Build.VERSION_CODES.Q)
     public void createLevel(ArrayList<Integer[]> level) {
         for (int col = 0; col < level.size(); col++) {
-            for (int row = 0; row < level.get(col).length; row++)    //j < 16
-                if (level.get(col)[row] == 1)
-                    tiles.add(new Tile(Bitmap.createBitmap(tileSprite, 0, 0, spriteWidth, spriteHeight), 69 * col, 69 * row));
+            for (int row = 0; row < level.get(col).length; row++) {    //j < 16
+                int tileID = level.get(col)[row] - 1;
+                if (tileID != -1) {
+                    Bitmap tile = Bitmap.createBitmap(tileSprite, spriteWidth * (tileID % 5), spriteHeight * (tileID / 3), spriteWidth, spriteHeight);
+                    tiles.add(new Tile(tile, 69 * col, 69 * row));
+                }
+            }
         }
     }
 
     public void draw(Canvas canvas) {
         for (Tile t : tiles) {
-            t.drawTile(canvas);
+            if (Rect.intersects(t.getBounds(), Game.cameraFrame))
+                t.drawTile(canvas);
         }
     }
 
-    public static void checkCollisionsAndUpdate(Player player) {
+    public void checkCollisionsAndUpdate(Player player) {
         for (Tile t : tiles) {
             if (Rect.intersects(player.getBounds(), t.getBounds())) {
                 if (Rect.intersects(player.getBoundTop(), t.getBounds())) {

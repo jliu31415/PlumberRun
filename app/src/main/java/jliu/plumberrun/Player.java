@@ -4,8 +4,11 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 
+import java.util.logging.Level;
+
 class Player {
     private final Bitmap playerSprite;
+    private final LevelCreator levelCreator;
     private final int spriteWidth, spriteHeight;
     private Rect spriteFrame;   //frame of Bitmap to extract
     private Rect spritePosition;
@@ -17,13 +20,14 @@ class Player {
     private int jumpVelocity = 30;
     private int gravity = -2;
 
-    public Player(Bitmap playerSprite) {
+    public Player(Bitmap playerSprite, LevelCreator levelCreator) {
         this.playerSprite = playerSprite;
+        this.levelCreator = levelCreator;
         spriteWidth = playerSprite.getWidth() / 4;
         spriteHeight = playerSprite.getHeight() / 3;
         spritePosition = new Rect(posX, posY, posX + imageSize, posY + imageSize);
-        posX = -imageSize;
-        posY = 15 * 69 - imageSize;
+        posX = -138;
+        posY = 15 * 69 - 138;
         velX = playerSpeed;
         velY = 0;
     }
@@ -42,7 +46,7 @@ class Player {
         posY -= velY;
         if (velX < playerSpeed) velX += playerAcceleration;
         velY += gravity;
-        LevelCreator.checkCollisionsAndUpdate(this);   //collisions handled by LevelCreator class
+        levelCreator.checkCollisionsAndUpdate(this);   //collisions handled by LevelCreator class
         //updatePosRect() called in LevelCreator
     }
 
@@ -50,9 +54,13 @@ class Player {
         velY = jumpVelocity;
     }
 
-    public void speedUp(int playerSpeed, int playerAccelerlation) {
+    public void speedUp(int playerSpeed, int playerAcceleration) {
         this.playerSpeed = playerSpeed;
         this.playerAcceleration = playerAcceleration;
+    }
+
+    public int getImageSize() {
+        return imageSize;
     }
 
     public int getPosX() {
