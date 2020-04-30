@@ -3,7 +3,6 @@ package jliu.plumberrun;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Rect;
-import android.util.Pair;
 
 class Player {
     private final Bitmap playerSprite;
@@ -12,9 +11,9 @@ class Player {
     private Rect spritePosition;
     private long frameCount = 0;
     private int imageSize = 138;   //twice tile size
-    private int posX, posY, velX, velY;
-    private boolean[] collisions;   //top, bottom, left, right; true if colliding
-    private int playerSpeed = 5;
+    private int posX, posY, velX, velY; //velY positive going up
+    private int playerSpeed = 10;
+    private int playerAcceleration = 1;
     private int jumpVelocity = 30;
     private int gravity = -2;
 
@@ -23,11 +22,10 @@ class Player {
         spriteWidth = playerSprite.getWidth() / 4;
         spriteHeight = playerSprite.getHeight() / 3;
         spritePosition = new Rect(posX, posY, posX + imageSize, posY + imageSize);
-        posX = imageSize;
+        posX = -imageSize;
         posY = 15 * 69 - imageSize;
         velX = playerSpeed;
         velY = 0;
-        collisions = new boolean[]{false, false, false, false};
     }
 
     public void draw(Canvas canvas) {
@@ -42,30 +40,55 @@ class Player {
 
         posX += velX;   //posX, posY gives top left corner of spritePosition rectangle
         posY -= velY;
-        collisions = LevelCreator.checkCollisionsAndUpdate(this);   //collisions handled by LevelCreator class
-        if(!collisions[3])
-            velX = playerSpeed;
-        if(!collisions[1])
-            velY += gravity;
-        spritePosition.offsetTo(posX, posY);
+        if (velX < playerSpeed) velX += playerAcceleration;
+        velY += gravity;
+        LevelCreator.checkCollisionsAndUpdate(this);   //collisions handled by LevelCreator class
+        //updatePosRect() called in LevelCreator
     }
 
     public void jump() {
         velY = jumpVelocity;
     }
 
-    public void setX(int posX, int velX) {
+    public void speedUp(int playerSpeed, int playerAccelerlation) {
+        this.playerSpeed = playerSpeed;
+        this.playerAcceleration = playerAcceleration;
+    }
+
+    public int getPosX() {
+        return posX;
+    }
+
+    public int getPosY() {
+        return posY;
+    }
+
+    public int getVelX() {
+        return velX;
+    }
+
+    public int getVelY() {
+        return velY;
+    }
+
+    public void setPosX(int posX) {
         this.posX = posX;
+    }
+
+    public void setPosY(int posY) {
+        this.posY = posY;
+    }
+
+    public void setVelX(int velX) {
         this.velX = velX;
     }
 
-    public void setY(int posY, int velY) {
-        this.posY = posY;
+    public void setVelY(int velY) {
         this.velY = velY;
     }
 
-    public Pair getPos() {
-        return new Pair(posX, posY);
+    public void updatePosRect() {
+        spritePosition.offsetTo(posX, posY);
     }
 
     public Rect getBounds() {

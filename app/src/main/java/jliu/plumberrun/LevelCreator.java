@@ -2,20 +2,16 @@ package jliu.plumberrun;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Rect;
 import android.os.Build;
-import android.util.Log;
 
 import androidx.annotation.RequiresApi;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 
 class LevelCreator {
     private final Bitmap tileSprite;
     private final int spriteWidth, spriteHeight;
-    private ArrayList<Color[][]> levels;
     private static ArrayList<Tile> tiles;
 
     public LevelCreator(Bitmap tiles_platform) {
@@ -23,7 +19,6 @@ class LevelCreator {
         spriteWidth = tileSprite.getWidth() / 5;
         spriteHeight = tileSprite.getHeight() / 3;
         tiles = new ArrayList<>();
-        levels = new ArrayList<>();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.Q)
@@ -41,25 +36,31 @@ class LevelCreator {
         }
     }
 
-    public static boolean[] checkCollisionsAndUpdate(Player player) {
-        boolean[] ret = new boolean[]{false, false, false, false};
+    public static void checkCollisionsAndUpdate(Player player) {
         for (Tile t : tiles) {
             if (Rect.intersects(player.getBounds(), t.getBounds())) {
                 if (Rect.intersects(player.getBoundTop(), t.getBounds())) {
-                    player.setY(t.getBounds().bottom, 0);
-                    ret[0] = true;
-                } else if (Rect.intersects(player.getBoundBottom(), t.getBounds())) {
-                    player.setY(t.getBounds().top - player.getBounds().height(), 0);
-                    ret[1] = true;
-                } else if (Rect.intersects(player.getBoundLeft(), t.getBounds())) {
-                    player.setX(t.getBounds().right, 0);
-                    ret[2] = true;
-                } else if (Rect.intersects(player.getBoundRight(), t.getBounds())) {
-                    player.setX(t.getBounds().left - player.getBounds().width(), 0);
-                    ret[3] = true;
+                    player.setPosY(t.getBounds().bottom);
+                    player.updatePosRect();
+                    if (player.getVelY() > 0) player.setVelY(0);
+                }
+                if (Rect.intersects(player.getBoundBottom(), t.getBounds())) {
+                    player.setPosY(t.getBounds().top - player.getBounds().height());
+                    player.updatePosRect();
+                    if (player.getVelY() < 0) player.setVelY(0);
+                }
+                if (Rect.intersects(player.getBoundLeft(), t.getBounds())) {
+                    player.setPosX(t.getBounds().right);
+                    player.updatePosRect();
+                    if (player.getVelX() < 0) player.setVelX(0);
+                }
+                if (Rect.intersects(player.getBoundRight(), t.getBounds())) {
+                    player.setPosX(t.getBounds().left - player.getBounds().width());
+                    player.updatePosRect();
+                    if (player.getVelX() > 0) player.setVelX(0);
                 }
             }
         }
-        return ret;
+        player.updatePosRect(); //if no collisions, update position as normal
     }
 }

@@ -1,6 +1,5 @@
 package jliu.plumberrun;
 
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.os.Build;
 import android.util.Log;
@@ -17,7 +16,8 @@ class GameLoop extends Thread {
     private final ArrayList<ArrayList<Integer[]>> levels;
     private final double TARGET_UPS = 36;
     private double averageUPS, averageFPS;
-    private boolean running = false;
+    private boolean running;
+    private boolean levelLoading;
 
     public GameLoop(Game game, SurfaceHolder surfaceHolder, LevelCreator levelCreator, ArrayList<ArrayList<Integer[]>> levels) {
         this.game = game;
@@ -37,7 +37,7 @@ class GameLoop extends Thread {
         super.run();
         Canvas canvas = null;
         levelCreator.createLevel(levels.get(0));
-
+        levelLoading = true;
         int updateCount = 0, frameCount = 0;
         long startTime, elapsedTime, sleepTime;
         startTime = System.currentTimeMillis();
@@ -49,6 +49,7 @@ class GameLoop extends Thread {
                     game.update();
                     updateCount++;
                     game.draw(canvas);
+                    levelLoading = false;
                 }
             } catch (IllegalArgumentException e) {
                 e.printStackTrace();
@@ -72,7 +73,7 @@ class GameLoop extends Thread {
                     e.printStackTrace();
                 }
             }
-            while (sleepTime < 0) {
+            while (sleepTime < 0 || levelLoading) {
                 game.update();
                 updateCount++;
                 elapsedTime = System.currentTimeMillis() - startTime;
