@@ -25,7 +25,7 @@ class Player {
         spriteWidth = playerSprite.getWidth() / 4;
         spriteHeight = playerSprite.getHeight() / 3;
         spritePosition = new Rect(posX, posY, posX + imageSize, posY + imageSize);
-        posX = -imageSize * 2;
+        posX = -imageSize;
         posY = 15 * 69 - imageSize;
         velX = playerSpeed;
         velY = 0;

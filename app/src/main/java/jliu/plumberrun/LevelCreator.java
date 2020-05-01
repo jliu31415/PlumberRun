@@ -23,8 +23,6 @@ class LevelCreator {
 
     @RequiresApi(api = Build.VERSION_CODES.Q)
     public void createLevel(ArrayList<Integer[]> level) {
-        for (int i = -10; i < 0; i++)    //initial buffer so player can run in frame
-            tiles.add(new Tile(Bitmap.createBitmap(tileSprite, 0, 0, spriteWidth, spriteHeight), 69 * i, 69 * 15));
         for (int col = 0; col < level.size(); col++) {
             for (int row = 0; row < level.get(col).length; row++) {    //j < 16
                 int tileID = level.get(col)[row] - 1;
@@ -34,6 +32,10 @@ class LevelCreator {
                 }
             }
         }
+    }
+
+    public void addTile(Tile tile) {
+        tiles.add(tile);
     }
 
     public void draw(Canvas canvas) {

@@ -55,7 +55,11 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     public boolean onTouchEvent(MotionEvent event) {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                player.jump();
+                if (!gameLoop.isReady())
+                    gameLoop.setReady(true);
+                else if (event.getX() > 1794 * canvasScaleX * .6 && event.getY() > 1080 * canvasScaleY * .6)
+                    player.jump();
+
         }
 
         return super.onTouchEvent(event);
