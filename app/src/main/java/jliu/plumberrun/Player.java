@@ -4,8 +4,6 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 
-import java.util.logging.Level;
-
 class Player {
     private final Bitmap playerSprite;
     private final LevelCreator levelCreator;
@@ -15,9 +13,10 @@ class Player {
     private long frameCount = 0;
     private int imageSize = 138;   //twice tile size
     private int posX, posY, velX, velY; //velY positive going up
-    private int playerSpeed = 10;
+    private int playerSpeed = 15;
     private int playerAcceleration = 1;
     private int jumpVelocity = 30;
+    private boolean canJump = true;
     private int gravity = -2;
 
     public Player(Bitmap playerSprite, LevelCreator levelCreator) {
@@ -26,8 +25,8 @@ class Player {
         spriteWidth = playerSprite.getWidth() / 4;
         spriteHeight = playerSprite.getHeight() / 3;
         spritePosition = new Rect(posX, posY, posX + imageSize, posY + imageSize);
-        posX = -138;
-        posY = 15 * 69 - 138;
+        posX = -imageSize * 2;
+        posY = 15 * 69 - imageSize;
         velX = playerSpeed;
         velY = 0;
     }
@@ -44,23 +43,26 @@ class Player {
 
         posX += velX;   //posX, posY gives top left corner of spritePosition rectangle
         posY -= velY;
-        if (velX < playerSpeed) velX += playerAcceleration;
+        if (velX < playerSpeed) playerAcceleration = Math.abs(playerAcceleration);
+        else if (velX > playerSpeed) playerAcceleration = -Math.abs(playerAcceleration);
+        velX += playerAcceleration;
         velY += gravity;
-        levelCreator.checkCollisionsAndUpdate(this);   //collisions handled by LevelCreator class
-        //updatePosRect() called in LevelCreator
+        //collisions handled by LevelCreator class, updatePosRect() called in LevelCreator
+        levelCreator.checkCollisionsAndUpdate(this);
     }
 
     public void jump() {
-        velY = jumpVelocity;
+        if (canJump) velY = jumpVelocity;
+        canJump = false;
+    }
+
+    public void resetJump() {
+        canJump = true;
     }
 
     public void speedUp(int playerSpeed, int playerAcceleration) {
         this.playerSpeed = playerSpeed;
         this.playerAcceleration = playerAcceleration;
-    }
-
-    public int getImageSize() {
-        return imageSize;
     }
 
     public int getPosX() {

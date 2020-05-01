@@ -66,7 +66,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         //dimensions of Google Pixel 2
         canvasScaleX = holder.getSurfaceFrame().width() / 1794;
         canvasScaleY = holder.getSurfaceFrame().width() / 1080;
-        cameraFrame = new Rect(0, 0, (int) (1794 * Game.canvasScaleY), (int) (1080 * Game.canvasScaleX));
+        cameraFrame = new Rect(cameraOffsetX, 0, (int) (1794 * Game.canvasScaleY), (int) (1080 * Game.canvasScaleX));
         gameLoop.startLoop();
     }
 
@@ -80,17 +80,19 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     public void draw(Canvas canvas) {
-        canvas.translate(-player.getPosX() - cameraOffsetX, 0);
+        if (player.getPosX() > -cameraOffsetX)
+            canvas.translate(-player.getPosX() - cameraOffsetX, 0);
         super.draw(canvas);
         canvas.drawColor(ContextCompat.getColor(getContext(), R.color.primary_light));
         player.draw(canvas);
         levelCreator.draw(canvas);
-        canvas.translate(player.getPosX() + cameraOffsetX, 0);
+        if (player.getPosX() > -cameraOffsetX)
+            canvas.translate(player.getPosX() + cameraOffsetX, 0);
     }
 
     public void update() {
         player.update();
-        if (player.getPosX() > 0)
+        if (player.getPosX() > -cameraOffsetX)
             cameraFrame.offsetTo(player.getPosX() + cameraOffsetX, 0);
     }
 
