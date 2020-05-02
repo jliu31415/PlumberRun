@@ -19,9 +19,11 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     public static double canvasScaleX, canvasScaleY;    //landscape reference
     public static Rect cameraFrame;
     private final int cameraOffsetX = -138;
-    private final GameLoop gameLoop;
-    private final Player player;
     private final LevelCreator levelCreator;
+    private final Player player;
+    private final GameLoop gameLoop;
+    private ArrayList<Plunger> plungers;
+    private boolean dragSet = false;   //true if user swipes to shoot
 
     public Game(Context context) {
         super(context);
@@ -31,9 +33,12 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
         Bitmap tiles_platform = BitmapFactory.decodeResource(getResources(), R.drawable.tiles_platform);
         Bitmap plumber_running = BitmapFactory.decodeResource(getResources(), R.drawable.plumber_running);
+        Bitmap plumber_throwing = BitmapFactory.decodeResource(getResources(), R.drawable.plumber_throwing);
+
         levelCreator = new LevelCreator(tiles_platform);
-        player = new Player(plumber_running, levelCreator);
+        player = new Player(plumber_running, plumber_throwing, levelCreator);
         gameLoop = new GameLoop(this, surfaceHolder, levelCreator, parseAllLevels());
+        plungers = new ArrayList<>();
     }
 
     private ArrayList<ArrayList<Integer[]>> parseAllLevels() {
@@ -59,10 +64,31 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                     gameLoop.setReady(true);
                 else if (event.getX() > 1794 * canvasScaleX * .6 && event.getY() > 1080 * canvasScaleY * .6)
                     player.jump();
+                else {
+                    dragSet = true;
+                    player.setFrameCount(0);
+                    player.setThrowing(true, false);
+                    plungers.add(0, new Plunger(BitmapFactory.decodeResource(getResources(), R.drawable.plunger),
+                            player, event.getX(), event.getY()));
+                }
+                break;
 
+            case MotionEvent.ACTION_MOVE:
+                if (dragSet) {
+                    plungers.get(0).drawArc();
+                }
+                break;
+
+            case MotionEvent.ACTION_UP:
+                if (dragSet) {
+                    plungers.get(0).fire();
+                    player.setThrowing(false, true);
+                }
+                dragSet = false;
+                break;
         }
 
-        return super.onTouchEvent(event);
+        return true;
     }
 
     @Override
@@ -88,8 +114,8 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
             canvas.translate(-player.getPosX() - cameraOffsetX, 0);
         super.draw(canvas);
         canvas.drawColor(ContextCompat.getColor(getContext(), R.color.primary_light));
-        player.draw(canvas);
         levelCreator.draw(canvas);
+        player.draw(canvas);
         if (player.getPosX() > -cameraOffsetX)
             canvas.translate(player.getPosX() + cameraOffsetX, 0);
     }

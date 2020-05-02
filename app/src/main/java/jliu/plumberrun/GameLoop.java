@@ -1,7 +1,6 @@
 package jliu.plumberrun;
 
 import android.graphics.Canvas;
-import android.graphics.Paint;
 import android.os.Build;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -15,7 +14,7 @@ class GameLoop extends Thread {
     private final SurfaceHolder surfaceHolder;
     private final LevelCreator levelCreator;
     private final ArrayList<ArrayList<Integer[]>> levels;
-    private final double TARGET_UPS = 36;
+    private final double TARGET_UPS = 50;
     private double averageUPS, averageFPS;
     private boolean running;
     private boolean ready = false;  //tap to start game
