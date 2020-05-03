@@ -9,17 +9,20 @@ class Player {
     private final LevelCreator levelCreator;
     private final double runningSpriteWidth, runningSpriteHeight, throwingSpriteWidth, throwingSpriteHeight;
     private Rect spriteFrame;   //frame of Bitmap to extract
-    private Rect spritePosition;
+    private Rect playerPosition, spritePosition;    //sprite drawn larger to make collisions more realistic
     private long frameCount;
     private int framePosX, framePosY;
-    private int imageSize = 138;   //twice tile size
-    private int velX, velY; //velY positive going up
+    private final int imageSize = 138;   //twice tile size
+    private final int hitBoxBufferLR = 30;    //hit box padding
+    private final int boundsBuffer = 3; //prevent getBounds functions to overlap
     private int playerSpeed = 10;
-    private int playerAcceleration = 1;
+    private int playerAcceleration = -1;
+    private int velX = playerSpeed, velY = 0;
     private int jumpVelocity = 30;
     private boolean canJump = true;
     private boolean throwCock = false;
     private boolean throwRelease = false;
+    private boolean slowMotion = false;
     private int gravity = -2;
 
     public Player(Bitmap playerRunningSprite, Bitmap playerThrowingSprite, LevelCreator levelCreator) {
@@ -30,12 +33,13 @@ class Player {
         runningSpriteHeight = playerRunningSprite.getHeight() / 3.0;
         throwingSpriteWidth = playerThrowingSprite.getWidth() / 4.0;
         throwingSpriteHeight = playerThrowingSprite.getHeight() / 3.0;
+        playerPosition = new Rect(-imageSize + hitBoxBufferLR, 15 * 69 - imageSize,
+                -hitBoxBufferLR, 15 * 69);
         spritePosition = new Rect(-imageSize, 15 * 69 - imageSize, 0, 15 * 69);
-        velX = playerSpeed;
-        velY = 0;
     }
 
     public void draw(Canvas canvas) {
+        spritePosition.offsetTo(playerPosition.left - hitBoxBufferLR, playerPosition.top);
         if (throwCock || throwRelease)
             canvas.drawBitmap(playerThrowingSprite, spriteFrame, Game.scale(spritePosition), null);
         else
@@ -56,13 +60,28 @@ class Player {
         }
         frameCount++;   //frameCount reset in Game when transitioning between animations
 
-        spritePosition.offset(velX, -velY);
+        playerPosition.offset(velX, -velY);
         if (velX < playerSpeed) playerAcceleration = Math.abs(playerAcceleration);
         else if (velX > playerSpeed) playerAcceleration = -Math.abs(playerAcceleration);
         velX += playerAcceleration;
         velY += gravity;
+        if (slowMotion) velY = Math.max(velY, -1);
+        else velY = Math.max(velY, -30);
         //collisions handled by LevelCreator class, updatePos() called in LevelCreator
         levelCreator.checkCollisionsAndUpdate(this);
+    }
+
+    public void slowMotion(boolean slow) {
+        if (slow) {
+            slowMotion = true;
+            playerSpeed = 1;
+            gravity = -1;
+            //velY handled in update; set floor to -1
+        } else {
+            slowMotion = false;
+            playerSpeed = 10;
+            gravity = -2;
+        }
     }
 
     public void jump() {
@@ -84,11 +103,11 @@ class Player {
     }
 
     public int getPosX() {
-        return spritePosition.left;
+        return playerPosition.left;
     }
 
     public int getPosY() {
-        return spritePosition.top;
+        return playerPosition.top;
     }
 
     public int getVelX() {
@@ -100,11 +119,11 @@ class Player {
     }
 
     public void setPosX(int posX) {
-        spritePosition.offsetTo(posX, spritePosition.top);
+        playerPosition.offsetTo(posX, playerPosition.top);
     }
 
     public void setPosY(int posY) {
-        spritePosition.offsetTo(spritePosition.left, posY);
+        playerPosition.offsetTo(playerPosition.left, posY);
     }
 
     public void setVelX(int velX) {
@@ -116,22 +135,26 @@ class Player {
     }
 
     public Rect getBounds() {
-        return spritePosition;
+        return playerPosition;
     }
 
     public Rect getBoundTop() {
-        return new Rect(spritePosition.left, spritePosition.top, spritePosition.right, spritePosition.top);
+        return new Rect(playerPosition.left + boundsBuffer, playerPosition.top,
+                playerPosition.right - boundsBuffer, playerPosition.top);
     }
 
     public Rect getBoundBottom() {
-        return new Rect(spritePosition.left, spritePosition.bottom, spritePosition.right, spritePosition.bottom);
+        return new Rect(playerPosition.left + boundsBuffer, playerPosition.bottom,
+                playerPosition.right - boundsBuffer, playerPosition.bottom);
     }
 
     public Rect getBoundLeft() {
-        return new Rect(spritePosition.left, spritePosition.top, spritePosition.left, spritePosition.bottom);
+        return new Rect(playerPosition.left, playerPosition.top + boundsBuffer, playerPosition.left,
+                playerPosition.bottom - boundsBuffer);
     }
 
     public Rect getBoundRight() {
-        return new Rect(spritePosition.right, spritePosition.top, spritePosition.right, spritePosition.bottom);
+        return new Rect(playerPosition.right, playerPosition.top + boundsBuffer, playerPosition.right,
+                playerPosition.bottom - boundsBuffer);
     }
 }

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
@@ -47,12 +48,14 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         Scanner scan = new Scanner(is);
         ArrayList<Integer[]> level = new ArrayList<>();
         while (scan.hasNext()) {
+            while (!scan.hasNextInt()) scan.nextLine();
             int counter = 0;
             Integer[] column = new Integer[16];
             for (int i = 0; i < 16; i++) column[counter++] = scan.nextInt();
             level.add(column);
         }
         allLevels.add(level);
+        scan.close();
         return allLevels;
     }
 
@@ -67,8 +70,9 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                 else {
                     dragSet = true;
                     player.setFrameCount(0);
+                    player.slowMotion(true);
                     player.setThrowing(true, false);
-                    plungers.add(0, new Plunger(BitmapFactory.decodeResource(getResources(), R.drawable.plunger),
+                    plungers.add(0, new Plunger(rotateBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.plunger), -90),
                             player, event.getX(), event.getY()));
                 }
                 break;
@@ -81,6 +85,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
             case MotionEvent.ACTION_UP:
                 if (dragSet) {
+                    player.slowMotion(false);
                     plungers.get(0).fire();
                     player.setThrowing(false, true);
                 }
@@ -116,12 +121,16 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         canvas.drawColor(ContextCompat.getColor(getContext(), R.color.primary_light));
         levelCreator.draw(canvas);
         player.draw(canvas);
+        for (int i = 0; i < plungers.size(); i++) plungers.get(i).draw(canvas);
         if (player.getPosX() > -cameraOffsetX)
             canvas.translate(player.getPosX() + cameraOffsetX, 0);
     }
 
     public void update() {
         player.update();
+        for (Plunger p : plungers) {
+            p.update();
+        }
         if (player.getPosX() > -cameraOffsetX)
             cameraFrame.offsetTo(player.getPosX() + cameraOffsetX, 0);
     }
@@ -130,5 +139,11 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     public static Rect scale(Rect position) {
         return new Rect((int) (Game.canvasScaleX * position.left), (int) (Game.canvasScaleY * position.top),
                 (int) (Game.canvasScaleX * position.right), (int) (Game.canvasScaleY * position.bottom));
+    }
+
+    public static Bitmap rotateBitmap(Bitmap source, float angle) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(angle);
+        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
     }
 }
