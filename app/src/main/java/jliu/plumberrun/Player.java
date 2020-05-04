@@ -23,7 +23,7 @@ class Player {
     private boolean throwCock = false;
     private boolean throwRelease = false;
     private boolean slowMotion = false;
-    private int gravity = -2;
+    private double gravity = -2;
 
     public Player(Bitmap playerRunningSprite, Bitmap playerThrowingSprite, LevelCreator levelCreator) {
         this.playerRunningSprite = playerRunningSprite;
