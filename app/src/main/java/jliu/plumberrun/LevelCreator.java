@@ -12,7 +12,7 @@ import java.util.ArrayList;
 class LevelCreator {
     private final Bitmap tileSprite;
     private final double spriteWidth, spriteHeight;
-    private int framePosX, framePosY;
+    private double framePosX, framePosY;
     private ArrayList<Tile> tiles;
 
     public LevelCreator(Bitmap tiles_platform) {
@@ -28,9 +28,9 @@ class LevelCreator {
             for (int row = 0; row < level.get(col).length; row++) {    //j < 16
                 int tileID = level.get(col)[row] - 1;
                 if (tileID != -1) {
-                    framePosX = (int) (spriteWidth * (tileID % 5));
-                    framePosY = (int) (spriteHeight * (tileID / 5));
-                    Bitmap tile = Bitmap.createBitmap(tileSprite, framePosX, framePosY, (int) spriteWidth, (int) spriteHeight);
+                    framePosX = spriteWidth * (tileID % 5);
+                    framePosY = spriteHeight * (tileID / 5);
+                    Bitmap tile = Bitmap.createBitmap(tileSprite, (int) framePosX, (int) framePosY, (int) spriteWidth, (int) spriteHeight);
                     tiles.add(new Tile(tile, 69 * col, 69 * row));
                 }
             }
@@ -38,13 +38,32 @@ class LevelCreator {
     }
 
     public void draw(Canvas canvas) {
-        for (Tile t : tiles) {
-            if (Rect.intersects(t.getBounds(), Game.cameraFrame))
-                t.drawTile(canvas);
+        int i = 0;
+        while(tiles.size() > 0 && tiles.get(i).getBounds().right < Game.cameraFrame.left)
+            tiles.remove(i);
+        while (i < tiles.size() && !(tiles.get(i).getBounds().left > Game.cameraFrame.right))
+            tiles.get(i++).drawTile(canvas);
+    }
+
+    public void updateCollisions(Plunger plunger) {
+        float[] boundingPoints = plunger.getBoundingPoints();
+
+        for (int i = 0; i < tiles.size(); i++) {
+            while (i < tiles.size() && tiles.get(i).getBounds().right < plunger.getSpritePosition().left)
+                i++;
+            if (i == tiles.size() || tiles.get(i).getBounds().left > plunger.getSpritePosition().right)
+                break;
+
+            for (int j = 0; j < boundingPoints.length; j += 2) {
+                if (tiles.get(i).getBounds().contains((int) boundingPoints[j], (int) boundingPoints[j + 1])) {
+                    plunger.stick();
+                    break;
+                }
+            }
         }
     }
 
-    public void checkCollisionsAndUpdate(Player player) {
+    public void updateCollisions(Player player) {
         for (int i = 0; i < tiles.size(); i++) {
             while (i < tiles.size() && tiles.get(i).getBounds().right < player.getBounds().left)
                 i++;

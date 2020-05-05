@@ -11,19 +11,18 @@ class Player {
     private Rect spriteFrame;   //frame of Bitmap to extract
     private Rect playerPosition, spritePosition;    //sprite drawn larger to make collisions more realistic
     private long frameCount;
-    private int framePosX, framePosY;
+    private double framePosX, framePosY;
     private final int imageSize = 138;   //twice tile size
     private final int hitBoxBufferLR = 30;    //hit box padding
     private final int boundsBuffer = 3; //prevent getBounds functions to overlap
-    private int playerSpeed = 10;
-    private int playerAcceleration = -1;
+    private int playerSpeed = 8;
     private int velX = playerSpeed, velY = 0;
-    private int jumpVelocity = 30;
+    private int jumpVelocity = 25;
     private boolean canJump = true;
     private boolean throwCock = false;
     private boolean throwRelease = false;
     private boolean slowMotion = false;
-    private double gravity = -2;
+    private final double gravity = -1;
 
     public Player(Bitmap playerRunningSprite, Bitmap playerThrowingSprite, LevelCreator levelCreator) {
         this.playerRunningSprite = playerRunningSprite;
@@ -33,9 +32,9 @@ class Player {
         runningSpriteHeight = playerRunningSprite.getHeight() / 3.0;
         throwingSpriteWidth = playerThrowingSprite.getWidth() / 4.0;
         throwingSpriteHeight = playerThrowingSprite.getHeight() / 3.0;
-        playerPosition = new Rect(-imageSize + hitBoxBufferLR, 15 * 69 - imageSize,
-                -hitBoxBufferLR, 15 * 69);
-        spritePosition = new Rect(-imageSize, 15 * 69 - imageSize, 0, 15 * 69);
+        playerPosition = new Rect(0, 15 * 69 - imageSize,
+                imageSize - 2 * hitBoxBufferLR, 15 * 69);
+        spritePosition = new Rect(-hitBoxBufferLR, 15 * 69 - imageSize, imageSize - hitBoxBufferLR, 15 * 69);
     }
 
     public void draw(Canvas canvas) {
@@ -50,37 +49,35 @@ class Player {
         if (throwCock || throwRelease) {
             if (throwCock && frameCount == 5) frameCount--;
             if (frameCount == 12) throwRelease = false;
-            framePosX = (int) (throwingSpriteWidth * (frameCount % 4));
-            framePosY = (int) (throwingSpriteHeight * (frameCount / 4 % 3));
-            spriteFrame = new Rect(framePosX, framePosY, framePosX + (int) throwingSpriteWidth, framePosY + (int) throwingSpriteHeight);
+            framePosX = throwingSpriteWidth * (frameCount % 4);
+            framePosY = throwingSpriteHeight * (frameCount / 4 % 3);
+            spriteFrame = new Rect((int) framePosX, (int) framePosY, (int) (framePosX + throwingSpriteWidth),
+                    (int) (framePosY + throwingSpriteHeight));
         } else {
-            framePosX = (int) (runningSpriteWidth * (frameCount % 4));
-            framePosY = (int) (runningSpriteHeight * (frameCount / 4 % 3));
-            spriteFrame = new Rect(framePosX, framePosY, framePosX + (int) runningSpriteWidth, framePosY + (int) runningSpriteHeight);
+            framePosX = runningSpriteWidth * (frameCount % 4);
+            framePosY = runningSpriteHeight * (frameCount / 4 % 3);
+            spriteFrame = new Rect((int) framePosX, (int) framePosY, (int) (framePosX + runningSpriteWidth),
+                    (int) (framePosY + runningSpriteHeight));
         }
         frameCount++;   //frameCount reset in Game when transitioning between animations
 
         playerPosition.offset(velX, -velY);
-        if (velX < playerSpeed) playerAcceleration = Math.abs(playerAcceleration);
-        else if (velX > playerSpeed) playerAcceleration = -Math.abs(playerAcceleration);
-        velX += playerAcceleration;
+        if (velX < playerSpeed && !slowMotion) velX++;
         velY += gravity;
         if (slowMotion) velY = Math.max(velY, -1);
-        else velY = Math.max(velY, -30);
+        else velY = Math.max(velY, -20);
         //collisions handled by LevelCreator class, updatePos() called in LevelCreator
-        levelCreator.checkCollisionsAndUpdate(this);
+        levelCreator.updateCollisions(this);
     }
 
     public void slowMotion(boolean slow) {
         if (slow) {
             slowMotion = true;
-            playerSpeed = 1;
-            gravity = -1;
+            velX = 1;
             //velY handled in update; set floor to -1
         } else {
             slowMotion = false;
-            playerSpeed = 10;
-            gravity = -2;
+            velX = playerSpeed;
         }
     }
 

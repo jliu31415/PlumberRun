@@ -79,7 +79,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                     player.slowMotion(true);
                     player.setThrowing(true, false);
                     plungers.add(0, new Plunger(BitmapFactory.decodeResource(getResources(), R.drawable.plunger),
-                            player, event.getX(), event.getY()));
+                            player, levelCreator, event.getX(), event.getY()));
                 }
                 break;
 
@@ -143,8 +143,11 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
     public void update() {
         player.update();
-        for (Plunger p : plungers) {
-            p.update();
+        for (int i = 0; i < plungers.size(); i++) {
+            if (plungers.get(i).getSpritePosition().right < cameraFrame.left)
+                plungers.remove(i--);
+            if (plungers.size() > 0 && !plungers.get(i).getStick())
+                plungers.get(i).update();
         }
         if (player.getPosX() > -cameraOffsetX)
             cameraFrame.offsetTo(player.getPosX() + cameraOffsetX, 0);
