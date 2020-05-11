@@ -4,8 +4,6 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
 import android.graphics.Rect;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
@@ -18,7 +16,8 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 class Game extends SurfaceView implements SurfaceHolder.Callback {
-    public static double canvasScaleX, canvasScaleY;    //landscape reference
+    public static double canvasScaleX = 1, canvasScaleY = 1;    //landscape reference
+    private static double canvasX = 1794, canvasY = 1080;
     public static Rect cameraFrame;
     private final int cameraOffsetX = -300;
     private int offset; //camera offset + player position
@@ -26,8 +25,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     private final Player player;
     private final GameLoop gameLoop;
     private ArrayList<Plunger> plungers;
-    private final Paint white;
-    private boolean dragSet = false, drawArc = false;   //true if user swipes to shoot
+    private boolean dragSet = false;   //true if user swipes to shoot
 
     public Game(Context context) {
         super(context);
@@ -43,21 +41,26 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         player = new Player(plumber_running, plumber_throwing, levelCreator);
         gameLoop = new GameLoop(this, surfaceHolder, levelCreator, parseAllLevels());
         plungers = new ArrayList<>();
-
-        white = new Paint();
-        white.setColor(Color.WHITE);
     }
 
     private ArrayList<ArrayList<Integer[]>> parseAllLevels() {
+        int numRows = (int) Math.ceil(canvasY / Tile.tileSize);
+        int id = 0;
+        boolean autoFill;
         ArrayList<ArrayList<Integer[]>> allLevels = new ArrayList<>();
         InputStream is = this.getResources().openRawResource(R.raw.test_level);
         Scanner scan = new Scanner(is);
         ArrayList<Integer[]> level = new ArrayList<>();
         while (scan.hasNext()) {
             while (!scan.hasNextInt()) scan.nextLine();
-            int counter = 0;
-            Integer[] column = new Integer[16];
-            for (int i = 0; i < 16; i++) column[counter++] = scan.nextInt();
+            Integer[] column = new Integer[numRows];
+            autoFill = false;
+            for (int i = numRows - 1; i >= 0; i--) {
+                if(!autoFill) id = scan.nextInt();
+                if (id == -1) autoFill = true;
+                if (!autoFill) column[i] = id;
+                else column[i] = column[i + 1];
+            }
             level.add(column);
         }
         allLevels.add(level);
@@ -71,7 +74,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
             case MotionEvent.ACTION_DOWN:
                 if (!gameLoop.isReady())
                     gameLoop.setReady(true);
-                else if (event.getX() > 1794 * canvasScaleX * .6 && event.getY() > 1080 * canvasScaleY * .6)
+                else if (event.getX() > canvasX * canvasScaleX * .6 && event.getY() > canvasY * canvasScaleY * .6)
                     player.jump();
                 else {
                     dragSet = true;
@@ -84,10 +87,8 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                 break;
 
             case MotionEvent.ACTION_MOVE:
-                if (dragSet) {
-                    drawArc = true;
+                if (dragSet)
                     plungers.get(0).setEnd(event.getX(), event.getY());
-                }
                 break;
 
             case MotionEvent.ACTION_UP:
@@ -97,7 +98,6 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                     player.setThrowing(false, true);
                 }
                 dragSet = false;
-                drawArc = false;
                 break;
         }
 
@@ -106,10 +106,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        //dimensions of Google Pixel 2
-        canvasScaleX = holder.getSurfaceFrame().width() / 1794;
-        canvasScaleY = holder.getSurfaceFrame().width() / 1080;
-        cameraFrame = new Rect(cameraOffsetX, 0, (int) (1794 * Game.canvasScaleY), (int) (1080 * Game.canvasScaleX));
+        cameraFrame = new Rect(cameraOffsetX, 0, (int) (canvasX * Game.canvasScaleY), (int) (canvasY * Game.canvasScaleX));
         gameLoop.startLoop();
     }
 
@@ -132,8 +129,6 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         levelCreator.draw(canvas);
         player.draw(canvas);
 
-        if (drawArc)
-            plungers.get(0).drawArc(canvas, white);
         for (int i = 0; i < plungers.size(); i++)
             plungers.get(i).draw(canvas);
 
@@ -144,10 +139,9 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     public void update() {
         player.update();
         for (int i = 0; i < plungers.size(); i++) {
-            if (plungers.get(i).getSpritePosition().right < cameraFrame.left)
-                plungers.remove(i--);
-            if (plungers.size() > 0 && !plungers.get(i).getStick())
-                plungers.get(i).update();
+            if (plungers.get(i).getSpritePosition().right < cameraFrame.left || plungers.get(i).getSpritePosition().top > cameraFrame.bottom)
+                plungers.remove(i);
+            else plungers.get(i).update();
         }
         if (player.getPosX() > -cameraOffsetX)
             cameraFrame.offsetTo(player.getPosX() + cameraOffsetX, 0);

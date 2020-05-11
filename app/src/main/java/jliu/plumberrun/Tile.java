@@ -7,7 +7,7 @@ import android.graphics.Rect;
 public class Tile {
     private final Bitmap tileSprite;
     private Rect spritePosition;
-    private final int tileSize = 69; //26 tiles to fill width of landscape canvas (15.65 to fill height)
+    public static final int tileSize = 80;
 
     public Tile(Bitmap tileSprite, int posX, int posY) {
         this.tileSprite = tileSprite;

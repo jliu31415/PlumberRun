@@ -12,17 +12,17 @@ class Player {
     private Rect playerPosition, spritePosition;    //sprite drawn larger to make collisions more realistic
     private long frameCount;
     private double framePosX, framePosY;
-    private final int imageSize = 138;   //twice tile size
+    private final int imageSize = Tile.tileSize * 2;
     private final int hitBoxBufferLR = 30;    //hit box padding
     private final int boundsBuffer = 3; //prevent getBounds functions to overlap
-    private int playerSpeed = 8;
-    private int velX = playerSpeed, velY = 0;
-    private int jumpVelocity = 25;
+    private double playerSpeed = 10;
+    private double velX = playerSpeed, velY = 0;    //velY += gravity, velY must be double
+    private double jumpVelocity = 30;
     private boolean canJump = true;
     private boolean throwCock = false;
     private boolean throwRelease = false;
     private boolean slowMotion = false;
-    private final double gravity = -1;
+    private final double gravity = -1.5;
 
     public Player(Bitmap playerRunningSprite, Bitmap playerThrowingSprite, LevelCreator levelCreator) {
         this.playerRunningSprite = playerRunningSprite;
@@ -38,7 +38,6 @@ class Player {
     }
 
     public void draw(Canvas canvas) {
-        spritePosition.offsetTo(playerPosition.left - hitBoxBufferLR, playerPosition.top);
         if (throwCock || throwRelease)
             canvas.drawBitmap(playerThrowingSprite, spriteFrame, Game.scale(spritePosition), null);
         else
@@ -54,6 +53,9 @@ class Player {
             spriteFrame = new Rect((int) framePosX, (int) framePosY, (int) (framePosX + throwingSpriteWidth),
                     (int) (framePosY + throwingSpriteHeight));
         } else {
+            if (!canJump) {
+                //jump animation
+            }
             framePosX = runningSpriteWidth * (frameCount % 4);
             framePosY = runningSpriteHeight * (frameCount / 4 % 3);
             spriteFrame = new Rect((int) framePosX, (int) framePosY, (int) (framePosX + runningSpriteWidth),
@@ -61,13 +63,15 @@ class Player {
         }
         frameCount++;   //frameCount reset in Game when transitioning between animations
 
-        playerPosition.offset(velX, -velY);
+        playerPosition.offset((int) velX, -(int) velY);
         if (velX < playerSpeed && !slowMotion) velX++;
         velY += gravity;
         if (slowMotion) velY = Math.max(velY, -1);
         else velY = Math.max(velY, -20);
         //collisions handled by LevelCreator class, updatePos() called in LevelCreator
         levelCreator.updateCollisions(this);
+        if (velY < 0) canJump = false;
+        spritePosition.offsetTo(playerPosition.left - hitBoxBufferLR, playerPosition.top);
     }
 
     public void slowMotion(boolean slow) {
@@ -107,11 +111,11 @@ class Player {
         return playerPosition.top;
     }
 
-    public int getVelX() {
+    public double getVelX() {
         return velX;
     }
 
-    public int getVelY() {
+    public double getVelY() {
         return velY;
     }
 
