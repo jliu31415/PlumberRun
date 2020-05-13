@@ -1,49 +1,35 @@
 package jliu.plumberrun;
 
 import android.graphics.Canvas;
-import android.os.Build;
 import android.util.Log;
 import android.view.SurfaceHolder;
-
-import androidx.annotation.RequiresApi;
-
-import java.util.ArrayList;
 
 class GameLoop extends Thread {
     private final Game game;
     private final SurfaceHolder surfaceHolder;
     private final LevelCreator levelCreator;
-    private final ArrayList<ArrayList<Integer[]>> levels;
-    private final double TARGET_UPS = 50;
+    private final static double TARGET_UPS = 20;
     private double averageUPS, averageFPS;
-    private boolean running;
-    private boolean ready = false;  //tap to start game
+    private boolean running = true, levelStarted = false;
 
-    public GameLoop(Game game, SurfaceHolder surfaceHolder, LevelCreator levelCreator, ArrayList<ArrayList<Integer[]>> levels) {
+    GameLoop(Game game, SurfaceHolder surfaceHolder, LevelCreator levelCreator) {
         this.game = game;
         this.surfaceHolder = surfaceHolder;
         this.levelCreator = levelCreator;
-        this.levels = levels;
     }
 
-    public void startLoop() {
-        running = true;
-        start();
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.Q)
     @Override
     public void run() {
         super.run();
         Canvas canvas = null;
-        levelCreator.createLevel(levels.get(0));
         int updateCount = 0, frameCount = 0;
         long startTime, elapsedTime, sleepTime;
         startTime = System.currentTimeMillis();
 
         while (running) {
-            if (!ready) {
+            if (!levelStarted) {
                 //draw start screen
+                levelCreator.createLevel(0);
                 startTime = System.currentTimeMillis();
             } else {
                 try {
@@ -93,15 +79,19 @@ class GameLoop extends Thread {
         }
     }
 
-    public void setReady(boolean ready) {
-        this.ready = ready;
+    void startLevel() {
+        levelStarted = true;
     }
 
-    public boolean isReady() {
-        return ready;
+    boolean levelStarted() {
+        return levelStarted;
     }
 
-    public void printUPSFPS() {
+    void endGame() {
+        running = false;
+    }
+
+    private void printUPSFPS() {
         Log.i("UPS: ", Double.toString(averageUPS));
         Log.i("FPS: ", Double.toString(averageFPS));
     }
