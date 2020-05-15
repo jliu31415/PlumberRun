@@ -1,6 +1,9 @@
 package jliu.plumberrun;
 
-public class Tile extends CollisionObject {
+import android.graphics.Point;
+import android.graphics.Rect;
+
+class Tile extends CollisionObject {
     private int tileID;
     private int posX, posY;
     private float[] points;
@@ -14,9 +17,10 @@ public class Tile extends CollisionObject {
     }
 
     @Override
-    public void setPoints() {
+    void setPoints() {
         if (tileID < 6 || true)  //full tile
-            points = new float[]{posX, posY, posX + tileSize, posY, posX + tileSize, posY + tileSize, posX, posY + tileSize, posX, posY};
+            points = new float[]{posX, posY, posX + tileSize, posY,
+                    posX + tileSize, posY + tileSize, posX, posY + tileSize};
         else if (tileID < 8) //rounded tile
             points = new float[0];
         else if (tileID < 10)   //slope
@@ -28,22 +32,22 @@ public class Tile extends CollisionObject {
     }
 
     @Override
-    public float[] getBounds() {
+    float[] getBounds() {
         return points;
     }
 
     @Override
-    public void offSetPosition(int dX, int dY, float dTheta) {
+    Rect getPosition() {
+        return new Rect(posX, posY, posX + tileSize, posY + tileSize);
+    }
+
+    @Override
+    void offSetPosition(int dX, int dY, float dTheta) {
 
     }
 
     @Override
-    public double getVelX() {
-        return 0;
-    }
+    void collide(Point offset) {
 
-    @Override
-    public double getVelY() {
-        return 0;
     }
 }

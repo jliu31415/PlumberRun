@@ -19,7 +19,7 @@ import java.util.Scanner;
 class Game extends SurfaceView implements SurfaceHolder.Callback {
     private static final int canvasX = 1794, canvasY = 1080;    //landscape reference
     private static double canvasScaleX = 1, canvasScaleY = 1;
-    public static Rect cameraFrame;
+    static Rect cameraFrame;
     private int totalOffsetX;   //camera frame offset
     private Bitmap plunger_horizontal = BitmapFactory.decodeResource(getResources(), R.drawable.plunger_horizontal);
     private final ArrayList<ArrayList<Integer[]>> allLevels;
@@ -29,7 +29,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     private ArrayList<Plunger> plungers;
     private boolean aiming = false;   //true if user swipes to shoot plunger
 
-    public Game(Context context) {
+    Game(Context context) {
         super(context);
         setFocusable(true);
         SurfaceHolder surfaceHolder = getHolder();
@@ -129,15 +129,10 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         for (int i = 0; i < plungers.size(); i++)
             plungers.get(i).draw(canvas);
 
-        player.drawPoints(canvas);
-        for (Tile tile : levelCreator.getSurroundingTiles(player.getBounds())) {
-            tile.drawPoints(canvas);
-        }
-
         canvas.translate(totalOffsetX, 0);
     }
 
-    public void update() {
+    void update() {
         player.update();
         for (Tile tile : levelCreator.getSurroundingTiles(player.getBounds())) {
             levelCreator.updateCollisions(player, tile);
@@ -160,16 +155,20 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     //scale sprite positions for other canvas dimensions unequal to 1080 x 1794
-    public static Rect scaleRect(Rect position) {
+    static Rect scaleRect(Rect position) {
         return new Rect((int) (Game.canvasScaleX * position.left), (int) (Game.canvasScaleY * position.top),
                 (int) (Game.canvasScaleX * position.right), (int) (Game.canvasScaleY * position.bottom));
     }
 
-    public static double scaleX(double pointX) {
+    static double scaleX(double pointX) {
         return canvasScaleX * pointX;
     }
 
-    public static double scaleY(double pointY) {
+    static double scaleY(double pointY) {
         return canvasScaleX * pointY;
+    }
+
+    static Rect getCanvasDimensions() {
+        return new Rect(0, 0, canvasX, canvasY);
     }
 }

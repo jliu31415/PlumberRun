@@ -50,45 +50,61 @@ class LevelCreator {
     void updateCollisions(CollisionObject collisionObject1, CollisionObject collisionObject2) {
         float[] points1 = collisionObject1.getBounds();
         float[] points2 = collisionObject2.getBounds();
-        double collisionAngle;
-        for (int i = 0; i < points1.length - 4; i += 2) {
-            for (int j = 0; j < points2.length - 4; j += 2) {
-                Point intersection = intersectingLines(points1[i], points1[i + 1], points1[i + 2], points1[i + 3],
-                        points2[j], points2[j + 1], points2[j + 2], points2[j + 3]);
-                if (intersection != null) {
-                    //collisionObject1.offSetPosition((int) -collisionObject1.getVelX(), (int) collisionObject1.getVelY(), 0);
-                }
+        Point offset1 = getProjectionOffset(points1, points2);
+        Point offset2 = getProjectionOffset(points2, points1);
+
+        if (offset1 != null && offset2 != null) {
+            Point offset = Math.hypot(offset1.x, offset1.y) < Math.hypot(offset2.x, offset2.y) ? offset1 : offset2;
+            if ((collisionObject1.getPosition().centerX() - collisionObject2.getPosition().centerX()) * offset.x < 0) {
+                offset.negate();
+            } else if ((collisionObject1.getPosition().centerY() - collisionObject2.getPosition().centerY()) * offset.y > 0) {
+                offset.negate();
             }
+            collisionObject1.collide(offset);
+            collisionObject1.offSetPosition(offset.x, -offset.y, 0);
         }
     }
 
-    //return point of intersection of AB and CD
-    private Point intersectingLines(double aX, double aY, double bX, double bY, double cX, double cY, double dX, double dY) {
-        // Line AB represented as a1x + b1y = c1
-        double a1 = bY - aY;
-        double b1 = aX - bX;
-        double c1 = a1 * aX + b1 * aY;
+    //projection onto points1 polygon; minimum offset returned as a Points vector
+    private Point getProjectionOffset(float[] points1, float[] points2) {
+        Point ret = new Point();
+        float overlap, globalOverlap = Float.POSITIVE_INFINITY;
 
-        // Line CD represented as a2x + b2y = c2
-        double a2 = dY - cY;
-        double b2 = cX - dX;
-        double c2 = a2 * cX + b2 * cY;
+        for (int i = 0; i < points1.length; i += 2) {
+            float dotProjection;
+            float minProjection1 = Float.POSITIVE_INFINITY;
+            float maxProjection1 = Float.NEGATIVE_INFINITY;
+            float minProjection2 = Float.POSITIVE_INFINITY;
+            float maxProjection2 = Float.NEGATIVE_INFINITY;
 
-        double x, y;
-        double determinant = a1 * b2 - a2 * b1;
+            float dX = points1[(i + 2) % points1.length] - points1[i];
+            float dY = points1[(i + 3) % points1.length] - points1[i + 1];
+            dX /= Math.hypot(dX, dY);
+            dY /= Math.hypot(dX, dY);
+            float normalX = -dY;
+            float normalY = dX;
 
-        if (determinant == 0) return null;  //lines are parallel
-        else {
-            x = (b2 * c1 - b1 * c2) / determinant;
-            y = (a1 * c2 - a2 * c1) / determinant;
+            for (int j = 0; j < points1.length; j += 2) {
+                dotProjection = normalX * points1[j] + normalY * points1[j + 1];
+                minProjection1 = Math.min(minProjection1, dotProjection);
+                maxProjection1 = Math.max(maxProjection1, dotProjection);
+            }
+
+            for (int j = 0; j < points2.length; j += 2) {
+                dotProjection = normalX * points2[j] + normalY * points2[j + 1];
+                minProjection2 = Math.min(minProjection2, dotProjection);
+                maxProjection2 = Math.max(maxProjection2, dotProjection);
+            }
+
+            overlap = Math.min(maxProjection1, maxProjection2) - Math.max(minProjection1, minProjection2);
+            if (overlap <= 0) return null;
+            if (overlap < globalOverlap) {
+                ret.set((int) (overlap * normalX), (int) (overlap * normalY));
+                globalOverlap = overlap;
+            }
         }
 
-        if (Math.min(aX, bX) <= x && x <= Math.max(aX, bX)) {
-            if (Math.min(aY, bY) <= y && y <= Math.max(aY, bY))
-                return new Point((int) x, (int) y);
-        }
-
-        return null;
+        return ret;
     }
 
     ArrayList<Tile> getSurroundingTiles(float[] points) {
@@ -103,7 +119,7 @@ class LevelCreator {
                 maxY = Math.max(maxY, points[i]);
             }
         }
-        int loop = 0;
+
         float coordinateX = minX, coordinateY = minY;   //border coordinates
         do {
             try {

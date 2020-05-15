@@ -2,6 +2,7 @@ package jliu.plumberrun;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Point;
 import android.graphics.Rect;
 
 class Player extends CollisionObject {
@@ -17,7 +18,7 @@ class Player extends CollisionObject {
     private double jumpVelocity = 30;
     private boolean windUp = false, throwing = false, jumping = false;
     private boolean slowMotion = false;
-    private final double gravity = 0;
+    private final double gravity = -1.5;
 
     Player(Bitmap runningSprite, Bitmap throwingSprite) {
         this.runningSprite = runningSprite;
@@ -26,7 +27,8 @@ class Player extends CollisionObject {
         runningSpriteHeight = runningSprite.getHeight() / 3;
         throwingSpriteWidth = throwingSprite.getWidth() / 4;
         throwingSpriteHeight = throwingSprite.getHeight() / 3;
-        playerPosition = new Rect(0, 15 * 69 - imageSize, imageSize, 15 * 69);
+        playerPosition = new Rect(0, Game.getCanvasDimensions().bottom / Tile.tileSize * Tile.tileSize - imageSize,
+                imageSize, Game.getCanvasDimensions().bottom / Tile.tileSize * Tile.tileSize);
         setPoints();
     }
 
@@ -84,20 +86,21 @@ class Player extends CollisionObject {
         }
     }
 
+    @Override
     Rect getPosition() {
         return playerPosition;
     }
 
     @Override
-    public void setPoints() {
-        float posX = playerPosition.left;
-        float posY = playerPosition.top;
-        points = new float[]{posX, posY, posX + imageSize, posY, posX + imageSize, posY + imageSize,
-                posX, posY + imageSize, posX, posY};
+    void setPoints() {
+        points = new float[]{playerPosition.left, playerPosition.top,
+                playerPosition.left + imageSize, playerPosition.top,
+                playerPosition.left + imageSize, playerPosition.top + imageSize,
+                playerPosition.left, playerPosition.top + imageSize};
     }
 
     @Override
-    public void offSetPosition(int dX, int dY, float dTheta) {
+    void offSetPosition(int dX, int dY, float dTheta) {
         playerPosition.offset(dX, dY);
         for (int i = 0; i < points.length; i++) {
             if (i % 2 == 0) points[i] += dX;
@@ -106,17 +109,16 @@ class Player extends CollisionObject {
     }
 
     @Override
-    public float[] getBounds() {
+    void collide(Point offset) {
+        if (offset.x != 0) velX = 0;
+        if (offset.y != 0) {
+            velY = 0;
+            jumping = false;
+        }
+    }
+
+    @Override
+    float[] getBounds() {
         return points;
-    }
-
-    @Override
-    public double getVelX() {
-        return velX;
-    }
-
-    @Override
-    public double getVelY() {
-        return velY;
     }
 }

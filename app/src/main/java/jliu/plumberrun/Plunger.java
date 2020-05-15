@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Point;
 import android.graphics.Rect;
 
 class Plunger extends CollisionObject {
@@ -98,13 +99,7 @@ class Plunger extends CollisionObject {
         plungerSpeed = power * plungerMaxSpeed;
     }
 
-    public void stick(float snapToAngle) {
-        this.snapToAngle = snapToAngle;
-        if (angle < snapToAngle) changePivot(points[0], points[1]);
-        else changePivot(points[2], points[3]);
-    }
-
-    public void fall(float angularVel) {
+    void fall(float angularVel) {
         sticking = false;
         falling = true;
         this.angularVel = angularVel;
@@ -116,7 +111,12 @@ class Plunger extends CollisionObject {
     }
 
     @Override
-    public void offSetPosition(int dX, int dY, float dTheta) {
+    Rect getPosition() {
+        return plungerPosition;
+    }
+
+    @Override
+    void offSetPosition(int dX, int dY, float dTheta) {
         plungerPosition.offset(dX, dY);
         for (int i = 0; i < points.length; i++) {
             if (i % 2 == 0) points[i] += dX;
@@ -131,10 +131,18 @@ class Plunger extends CollisionObject {
     }
 
     @Override
-    public void setPoints() {
-        points = new float[]{plungerPosition.left, plungerPosition.centerY(), plungerPosition.right - imageSize / 3.0f, plungerPosition.centerY(),
-                plungerPosition.right, plungerPosition.centerY() - imageSize / 8.0f, plungerPosition.right, plungerPosition.centerY() + imageSize / 8.0f,
-                plungerPosition.right - imageSize / 3.0f, plungerPosition.centerY()};
+    void collide(Point offset) {
+        sticking = true;
+        //this.snapToAngle = ;
+        if (angle < snapToAngle) changePivot(points[0], points[1]);
+        else changePivot(points[2], points[3]);
+    }
+
+    @Override
+    void setPoints() {
+        points = new float[]{plungerPosition.right - imageSize / 3.0f, plungerPosition.centerY(),
+                plungerPosition.right, plungerPosition.centerY() - imageSize / 8.0f,
+                plungerPosition.right, plungerPosition.centerY() + imageSize / 8.0f};
     }
 
     private void changePivot(float pivotX, float pivotY) {
@@ -150,18 +158,8 @@ class Plunger extends CollisionObject {
     }
 
     @Override
-    public float[] getBounds() {
+    float[] getBounds() {
         return points;
-    }
-
-    @Override
-    public double getVelX() {
-        return velX;
-    }
-
-    @Override
-    public double getVelY() {
-        return velY;
     }
 
     boolean outOfPlay() {
