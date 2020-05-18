@@ -126,8 +126,9 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         canvas.drawColor(ContextCompat.getColor(getContext(), R.color.primary_light));
         levelCreator.draw(canvas);
         player.draw(canvas);
-        for (int i = 0; i < plungers.size(); i++)
+        for (int i = 0; i < plungers.size(); i++) { //don't use foreach loop
             plungers.get(i).draw(canvas);
+        }
 
         canvas.translate(totalOffsetX, 0);
     }
@@ -143,7 +144,11 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                 plungers.remove(i--);
             else {
                 plungers.get(i).update();
-                //levelCreator.updateCollisions(plungers.get(i));
+                if (plungers.get(i).tileCollisionsEnabled()) {
+                    for (Tile tile : levelCreator.getSurroundingTiles(plungers.get(i).getBounds())) {
+                        levelCreator.updateCollisions(plungers.get(i), tile);
+                    }
+                }
             }
         }
 

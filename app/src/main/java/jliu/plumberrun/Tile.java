@@ -1,6 +1,6 @@
 package jliu.plumberrun;
 
-import android.graphics.Point;
+import android.graphics.PointF;
 import android.graphics.Rect;
 
 class Tile extends CollisionObject {
@@ -9,10 +9,10 @@ class Tile extends CollisionObject {
     private float[] points;
     static final int tileSize = 80;
 
-    Tile(int tileID, double posX, double posY) {
+    Tile(int tileID, int posX, int posY) {
         this.tileID = tileID;
-        this.posX = (int) posX / tileSize * tileSize;
-        this.posY = (int) posY / tileSize * tileSize;
+        this.posX = posX / tileSize * tileSize;
+        this.posY = posY / tileSize * tileSize;
         setPoints();
     }
 
@@ -42,12 +42,12 @@ class Tile extends CollisionObject {
     }
 
     @Override
-    void offSetPosition(int dX, int dY, float dTheta) {
+    void offSetPosition(int dX, int dY) {
 
     }
 
     @Override
-    void collide(Point offset) {
+    void collide(PointF normal) {
 
     }
 }

@@ -23,6 +23,4 @@ floating ledge
 test
 00 -1
 00 -1
-00 -1
-00 -1
 02 -1
