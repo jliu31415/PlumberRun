@@ -7,10 +7,9 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.Rect;
-import android.util.Log;
 
 class Plunger extends CollisionObject {
-    private final Bitmap plunger;
+    private final Bitmap plungerSprite;
     private final Player player;
     private final float startX, startY;
     private float endX, endY;
@@ -18,19 +17,19 @@ class Plunger extends CollisionObject {
     private Rect plungerPosition;
     private final int plungerOffsetX = -80;   //offset plunger to player's hand
     private static final int imageSize = Tile.tileSize * 2;
-    private final double plungerMaxSpeed = 30;
+    private final double plungerMaxSpeed = 35;
     private double plungerSpeed = 0;   //current plunger speed
     private float aim, angle, prevAngle, snapToAngle; //angle follows parabolic arc when fired
     private double power = 1;   //pull back more for more power; [.5, 1]
-    private final double gravity = -.3;
+    private final double gravity = -.5;
     private int airTime = 0;
     private boolean fired = false, sticking = false;
     private float pivotX, pivotY;  //image rotation pivot coordinates
     private float[] points;  //bounding points
     private final Paint white;
 
-    Plunger(Bitmap plunger, Player player, float touchX, float touchY) {
-        this.plunger = plunger;
+    Plunger(Bitmap plungerSprite, Player player, float touchX, float touchY) {
+        this.plungerSprite = plungerSprite;
         this.player = player;
         startX = endX = touchX;
         startY = endY = touchY;
@@ -45,7 +44,7 @@ class Plunger extends CollisionObject {
 
     void draw(Canvas canvas) {
         canvas.rotate((float) Math.toDegrees(-angle), (float) (Game.scaleX(pivotX)), (float) (Game.scaleY(pivotY)));
-        canvas.drawBitmap(plunger, null, Game.scaleRect(plungerPosition), null);
+        canvas.drawBitmap(plungerSprite, null, Game.scaleRect(plungerPosition), null);
         canvas.rotate((float) Math.toDegrees(angle), (float) (Game.scaleX(pivotX)), (float) (Game.scaleY(pivotY)));
 
         //draw arc
@@ -126,7 +125,6 @@ class Plunger extends CollisionObject {
 
     @Override
     void collide(PointF normal) {
-        Log.d("debug", normal.toString());
         sticking = true;
         velX = velY = 0;
 

@@ -21,7 +21,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     private static double canvasScaleX = 1, canvasScaleY = 1;
     static Rect cameraFrame;
     private int totalOffsetX;   //camera frame offset
-    private Bitmap plunger_horizontal = BitmapFactory.decodeResource(getResources(), R.drawable.plunger_horizontal);
+    private Bitmap plunger_sprite;
     private final ArrayList<ArrayList<Integer[]>> allLevels;
     private final LevelCreator levelCreator;
     private final Player player;
@@ -35,13 +35,13 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         SurfaceHolder surfaceHolder = getHolder();
         surfaceHolder.addCallback(this);
 
-        Bitmap tiles_platform = BitmapFactory.decodeResource(getResources(), R.drawable.tiles_platform);
-        Bitmap plumber_running = BitmapFactory.decodeResource(getResources(), R.drawable.plumber_running);
-        Bitmap plumber_throwing = BitmapFactory.decodeResource(getResources(), R.drawable.plumber_throwing);
+        Bitmap tile_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.tile_sprites);
+        Bitmap plumber_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.plumber_sprites);
+        plunger_sprite = BitmapFactory.decodeResource(getResources(), R.drawable.plunger_sprite);
 
         allLevels = parseAllLevels();
-        levelCreator = new LevelCreator(allLevels, tiles_platform);
-        player = new Player(plumber_running, plumber_throwing);
+        levelCreator = new LevelCreator(allLevels, tile_sprites);
+        player = new Player(plumber_sprites);
         gameLoop = new GameLoop(this, surfaceHolder, levelCreator);
         plungers = new ArrayList<>();
     }
@@ -83,7 +83,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                 else {
                     aiming = true;
                     player.windUp();
-                    plungers.add(0, new Plunger(plunger_horizontal, player, event.getX(), event.getY()));
+                    plungers.add(0, new Plunger(plunger_sprite, player, event.getX(), event.getY()));
                 }
                 break;
 

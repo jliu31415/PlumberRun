@@ -11,18 +11,17 @@ class LevelCreator {
     private final ArrayList<ArrayList<Integer[]>> allLevels;
     private ArrayList<Integer[]> level;
     private int levelID;
-    private final Bitmap tileSpriteSheet;
-    private Rect tileSprite;
+    private final Bitmap tilesSprite;
+    private Rect spriteFrame;
     private Rect tilePosition;
-    private final int tileSpriteSheetWidth, tileSpriteSheetHeight;
+    private final int spriteSize;
     private static final int tileSize = Tile.tileSize;
 
-    LevelCreator(ArrayList<ArrayList<Integer[]>> allLevels, Bitmap tiles_platform) {
+    LevelCreator(ArrayList<ArrayList<Integer[]>> allLevels, Bitmap tilesSprite) {
         this.allLevels = allLevels;
-        tileSpriteSheet = tiles_platform;
-        tileSpriteSheetWidth = tileSpriteSheet.getWidth() / 5;
-        tileSpriteSheetHeight = tileSpriteSheet.getHeight() / 3;
-        tileSprite = new Rect(0, 0, tileSpriteSheetWidth, tileSpriteSheetHeight);
+        this.tilesSprite = tilesSprite;
+        spriteSize = tilesSprite.getWidth() / 5;
+        spriteFrame = new Rect(0, 0, spriteSize, spriteSize);
         tilePosition = new Rect(0, 0, tileSize, tileSize);
     }
 
@@ -41,11 +40,11 @@ class LevelCreator {
             for (int row = 0; row < level.get(col).length; row++) {
                 int tileID = level.get(col)[row];
                 if (tileID-- != 0) {
-                    framePosX = tileSpriteSheetWidth * (tileID % 5);
-                    framePosY = tileSpriteSheetHeight * (tileID / 5);
-                    tileSprite.offsetTo(framePosX, framePosY);
+                    framePosX = spriteSize * (tileID % 5);
+                    framePosY = spriteSize * (tileID / 5);
+                    spriteFrame.offsetTo(framePosX, framePosY);
                     tilePosition.offsetTo(col * tileSize, row * tileSize);
-                    canvas.drawBitmap(tileSpriteSheet, tileSprite, Game.scaleRect(tilePosition), null);
+                    canvas.drawBitmap(tilesSprite, spriteFrame, Game.scaleRect(tilePosition), null);
                 }
             }
         }

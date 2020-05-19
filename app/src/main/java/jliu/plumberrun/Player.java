@@ -6,93 +6,93 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 
 class Player extends CollisionObject {
-    private final Bitmap runningSprite, throwingSprite;
-    private final int runningSpriteWidth, runningSpriteHeight, throwingSpriteWidth, throwingSpriteHeight;
+    private final Bitmap playerSprite;
+    private final int spriteSize;
+    private Rect spriteFrame;
     private Rect playerPosition;
     private float[] points; //bounding points
-    private Rect runningSpriteFrame, throwingSpriteFrame;   //frame of Bitmap to extract
     private int frameCount;
     private static final int imageSize = Tile.tileSize * 2;
     private double maxSpeedX = 10;
     private double velX = maxSpeedX, velY = 0;
-    private double jumpVelocity = 30;
-    private boolean running = true, windUp = false, throwing = false, jumping = false;
+    private double jumpVelocity = 35;
+    private boolean running = true, jumping = false, landing = false, windUp = false, throwing = false;
     private boolean slowMotion = false;
-    private final double gravity = -1.2;
+    private final double gravity = -1.5;
 
-    Player(Bitmap runningSprite, Bitmap throwingSprite) {
-        this.runningSprite = runningSprite;
-        this.throwingSprite = throwingSprite;
-        runningSpriteWidth = runningSprite.getWidth() / 4;
-        runningSpriteHeight = runningSprite.getHeight() / 3;
-        throwingSpriteWidth = throwingSprite.getWidth() / 4;
-        throwingSpriteHeight = throwingSprite.getHeight() / 3;
-        runningSpriteFrame = new Rect(0, 0, runningSpriteWidth, runningSpriteHeight);
-        throwingSpriteFrame = new Rect(0, 0, throwingSpriteWidth, throwingSpriteHeight);
-        playerPosition = new Rect(0, Game.getCanvasDimensions().bottom / Tile.tileSize * Tile.tileSize - imageSize,
-                imageSize, Game.getCanvasDimensions().bottom / Tile.tileSize * Tile.tileSize);
+    Player(Bitmap playerSprite) {
+        this.playerSprite = playerSprite;
+        spriteSize = playerSprite.getWidth() / 5;
+        spriteFrame = new Rect(0, 0, spriteSize, spriteSize);
+        playerPosition = new Rect(-imageSize, Game.getCanvasDimensions().bottom / 2,
+                0, Game.getCanvasDimensions().bottom / 2 + imageSize);
         setPoints();
     }
 
     void draw(Canvas canvas) {
-        if (running && !jumping && !windUp && !throwing)
-            canvas.drawBitmap(runningSprite, runningSpriteFrame, Game.scaleRect(playerPosition), null);
-        else
-            canvas.drawBitmap(throwingSprite, throwingSpriteFrame, Game.scaleRect(playerPosition), null);
+        canvas.drawBitmap(playerSprite, spriteFrame, Game.scaleRect(playerPosition), null);
     }
 
     void update() {
-        int framePosX, framePosY;
+        if (velY < 0) jumping = true;   //free fall without jumping
+        if (jumping) landing = true;
 
-        if (frameCount == 13) {
-            throwing = false;
-            running = true;
+        boolean incrementFrame = true;
+        //running [0, 9], jumping up [10], falling down [11, 12], landing [13, 14], wind up [15, 19], throwing [20, 24]
+        if (running && !jumping && !landing && !windUp && !throwing) {
+            if (frameCount > 9) frameCount = 0;
+        } else if (jumping && !windUp && !throwing) {
+            if (frameCount < 10 || frameCount > 12 || velY > 0) frameCount = 10;
+            if (frameCount == 12) incrementFrame = false;
+        } else if (landing && !windUp && !throwing) {
+            if (frameCount < 13 || frameCount > 14) frameCount = 13;
+            if (frameCount == 14) {
+                landing = false;
+                jumping = true;
+                frameCount = 9; //transitions with running animation
+            }
+        } else if (windUp) {
+            if (frameCount < 15 || frameCount > 19) frameCount = 15;
+            if (frameCount == 19) incrementFrame = false;
+        } else if (throwing) {
+            if (frameCount < 20 || frameCount > 24) frameCount = 20;
+            if (frameCount == 24) {
+                throwing = false;
+                running = true;
+                frameCount = 8; //transitions with running animation
+                if (jumping) frameCount = 11;
+            }
         }
-
-        if (running && !jumping && !windUp && !throwing) {
-            framePosX = runningSpriteWidth * (frameCount % 4);
-            framePosY = runningSpriteHeight * (frameCount / 4 % 3);
-            runningSpriteFrame.offsetTo(framePosX, framePosY);
-        } else if (jumping && !windUp) {
-            //jumping animation
-        } else if (windUp || throwing) {
-            if (windUp && frameCount == 5) frameCount--;
-            framePosX = throwingSpriteWidth * (frameCount % 4);
-            framePosY = throwingSpriteHeight * (frameCount / 4 % 3);
-            throwingSpriteFrame.offsetTo(framePosX, framePosY);
-        }
-        frameCount++;
+        spriteFrame.offsetTo(spriteSize * (frameCount % 5), spriteSize * (frameCount / 5));
+        if (incrementFrame) frameCount++;
 
         if (!slowMotion) {
             if (velX < maxSpeedX) velX++;
             velY = Math.max(velY + gravity, -20);
         } else {
             velX = 1;
-            velY = Math.max(velY + gravity, -1);
+            velY = Math.min(0, velY - .1);
         }
 
-        if (velY < 0) jumping = true;    //free fall without jumping
-
         offSetPosition((int) velX, (int) -velY);
+    }
+
+    void jump() {
+        if (!jumping) {
+            jumping = true;
+            velY = jumpVelocity;
+        }
     }
 
     void windUp() {
         windUp = true;
         slowMotion = true;
-        frameCount = 0;
     }
 
     void throwPlunger() {
         throwing = true;
         windUp = false;
         slowMotion = false;
-    }
-
-    void jump() {
-        if (!jumping) {
-            velY = jumpVelocity;
-            jumping = true;
-        }
     }
 
     @Override
@@ -102,10 +102,10 @@ class Player extends CollisionObject {
 
     @Override
     void setPoints() {
-        points = new float[]{playerPosition.left, playerPosition.top,
-                playerPosition.left + imageSize, playerPosition.top,
-                playerPosition.left + imageSize, playerPosition.top + imageSize,
-                playerPosition.left, playerPosition.top + imageSize};
+        points = new float[]{playerPosition.left + imageSize / 4.0f, playerPosition.top,
+                playerPosition.left + 3 * imageSize / 4.0f, playerPosition.top,
+                playerPosition.left + 3 * imageSize / 4.0f, playerPosition.top + 7 * imageSize / 8.0f,
+                playerPosition.left + imageSize / 4.0f, playerPosition.top + 7 * imageSize / 8.0f};
     }
 
     @Override
