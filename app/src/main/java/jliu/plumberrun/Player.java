@@ -11,14 +11,14 @@ class Player extends CollisionObject {
     private Rect spriteFrame;
     private Rect playerPosition;
     private float[] points; //bounding points
-    private int frameCount;
+    private int frameCount = 0;
     private static final int imageSize = Tile.tileSize * 2;
     private double maxSpeedX = 10;
     private double velX = maxSpeedX, velY = 0;
     private double jumpVelocity = 35;
-    private boolean running = true, jumping = false, landing = false, windUp = false, throwing = false;
+    private boolean airBorne = false, windUp = false, throwing = false;
     private boolean slowMotion = false;
-    private final double gravity = -1.5;
+    private final double gravity = -2;
 
     Player(Bitmap playerSprite) {
         this.playerSprite = playerSprite;
@@ -34,63 +34,44 @@ class Player extends CollisionObject {
     }
 
     void update() {
-        if (velY < 0) jumping = true;   //free fall without jumping
-        if (jumping) landing = true;
-
-        boolean incrementFrame = true;
-        //running [0, 9], jumping up [10], falling down [11, 12], landing [13, 14], wind up [15, 19], throwing [20, 24]
-        if (running && !jumping && !landing && !windUp && !throwing) {
-            if (frameCount > 9) frameCount = 0;
-        } else if (jumping && !windUp && !throwing) {
-            if (frameCount < 10 || frameCount > 12 || velY > 0) frameCount = 10;
-            if (frameCount == 12) incrementFrame = false;
-        } else if (landing && !windUp && !throwing) {
-            if (frameCount < 13 || frameCount > 14) frameCount = 13;
-            if (frameCount == 14) {
-                landing = false;
-                jumping = true;
-                frameCount = 9; //transitions with running animation
-            }
-        } else if (windUp) {
-            if (frameCount < 15 || frameCount > 19) frameCount = 15;
-            if (frameCount == 19) incrementFrame = false;
-        } else if (throwing) {
-            if (frameCount < 20 || frameCount > 24) frameCount = 20;
-            if (frameCount == 24) {
-                throwing = false;
-                running = true;
-                frameCount = 8; //transitions with running animation
-                if (jumping) frameCount = 11;
-            }
+        if (!throwing) {
+            frameCount = frameCount % 10;
+        } else {
+            if (frameCount == 16 && windUp) frameCount--;
+            if (frameCount == 19) throwing = false;
         }
+
         spriteFrame.offsetTo(spriteSize * (frameCount % 5), spriteSize * (frameCount / 5));
-        if (incrementFrame) frameCount++;
+        frameCount++;
 
         if (!slowMotion) {
             if (velX < maxSpeedX) velX++;
-            velY = Math.max(velY + gravity, -20);
+            velY = Math.max(velY + gravity, -25);
         } else {
             velX = 1;
             velY = Math.min(0, velY - .1);
         }
 
         offSetPosition((int) velX, (int) -velY);
+
+        if (velY < 0) airBorne = true;   //free fall without jumping
     }
 
     void jump() {
-        if (!jumping) {
-            jumping = true;
+        if (!airBorne) {
+            airBorne = true;
             velY = jumpVelocity;
         }
     }
 
     void windUp() {
+        throwing = true;
         windUp = true;
         slowMotion = true;
+        frameCount = 10;
     }
 
     void throwPlunger() {
-        throwing = true;
         windUp = false;
         slowMotion = false;
     }
@@ -121,7 +102,7 @@ class Player extends CollisionObject {
     void collide(PointF normal) {
         velX = maxSpeedX * (1 - Math.abs(normal.x / Math.hypot(normal.x, normal.y)));
         if (normal.y != 0) velY = 0;
-        if (normal.y > 0) jumping = false;
+        if (normal.y > 0) airBorne = false;
     }
 
     @Override
