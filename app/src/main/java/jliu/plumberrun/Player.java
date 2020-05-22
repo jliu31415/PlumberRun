@@ -13,9 +13,8 @@ class Player extends CollisionObject {
     private float[] points; //bounding points
     private int frameCount = 0;
     private static final int imageSize = Tile.tileSize * 2;
-    private double maxSpeedX = 10;
+    private double maxSpeedX = 15, maxSpeedY = 30;
     private double velX = maxSpeedX, velY = 0;
-    private double jumpVelocity = 35;
     private boolean airBorne = false, windUp = false, throwing = false;
     private boolean slowMotion = false;
     private final double gravity = -2;
@@ -24,8 +23,7 @@ class Player extends CollisionObject {
         this.playerSprite = playerSprite;
         spriteSize = playerSprite.getWidth() / 5;
         spriteFrame = new Rect(0, 0, spriteSize, spriteSize);
-        playerPosition = new Rect(-imageSize, Game.getCanvasDimensions().bottom / 2,
-                0, Game.getCanvasDimensions().bottom / 2 + imageSize);
+        playerPosition = new Rect(-imageSize, 800, 0, 800 + imageSize);
         setPoints();
     }
 
@@ -46,21 +44,20 @@ class Player extends CollisionObject {
 
         if (!slowMotion) {
             if (velX < maxSpeedX) velX++;
-            velY = Math.max(velY + gravity, -25);
+            velY = Math.max(velY + gravity, -maxSpeedY);
         } else {
             velX = 1;
             velY = Math.min(0, velY - .1);
         }
 
         offSetPosition((int) velX, (int) -velY);
-
         if (velY < 0) airBorne = true;   //free fall without jumping
     }
 
     void jump() {
         if (!airBorne) {
             airBorne = true;
-            velY = jumpVelocity;
+            velY = maxSpeedY;
         }
     }
 
@@ -100,9 +97,9 @@ class Player extends CollisionObject {
 
     @Override
     void collide(PointF normal) {
-        velX = maxSpeedX * (1 - Math.abs(normal.x / Math.hypot(normal.x, normal.y)));
-        if (normal.y != 0) velY = 0;
-        if (normal.y > 0) airBorne = false;
+        if (normal.y < 0) airBorne = false;
+        velX = maxSpeedX * -normal.y / Math.hypot(normal.x, normal.y);   //normal y is already inverted
+        if (!airBorne) velY = velX * -normal.x / Math.hypot(normal.x, normal.y);
     }
 
     @Override

@@ -7,6 +7,7 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.Rect;
+import android.util.Log;
 
 class Plunger extends CollisionObject {
     private final Bitmap plungerSprite;
@@ -19,11 +20,11 @@ class Plunger extends CollisionObject {
     private static final int imageSize = Tile.tileSize * 2;
     private final double plungerMaxSpeed = 35;
     private double plungerSpeed = 0;   //current plunger speed
-    private float aim, angle, prevAngle, snapToAngle; //angle follows parabolic arc when fired
+    private float aim, angle, snapToAngle; //angle follows parabolic arc when fired; [-PI/2, 3PI/2]
     private double power = 1;   //pull back more for more power; [.5, 1]
     private final double gravity = -.5;
     private int airTime = 0;
-    private boolean fired = false, sticking = false;
+    private boolean fired = false, sticking = false, collided = false;
     private float pivotX, pivotY;  //image rotation pivot coordinates
     private float[] points;  //bounding points
     private final Paint white;
@@ -49,41 +50,44 @@ class Plunger extends CollisionObject {
 
         //draw arc
         if (!fired) {
-            for (int i = 10; i < 70; i += 10) {
+            for (double i = 5.0 / power; i < 50; i += 5) {
                 canvas.drawCircle((float) (pivotX + power * plungerMaxSpeed * i * Math.cos(angle)),
                         (float) (pivotY - (power * plungerMaxSpeed * i * Math.sin(angle) + gravity * Math.pow(i, 2) / 2.0)),
-                        (70 - i) / 5.0f, white);
+                        (float) ((70 - i) / 5.0), white);
             }
         }
     }
 
     void update() {
-        prevAngle = angle;
+        float prevAngle = angle;
 
         if (!fired) {
             velX = player.getPosition().left - plungerPosition.left + plungerOffsetX;
             velY = plungerPosition.top - player.getPosition().top;
 
+            if (startX == endX) aim = 0;
+            else aim = (float) Math.atan((endY - startY) / (startX - endX));
+            aim = (float) Math.min(aim, Math.PI / 2.1);
+            aim = (float) Math.max(aim, -Math.PI / 2.1);
+            if (startX < endX) aim += Math.PI;
+            angle = aim;
+
             power = Math.hypot(startX - endX, startY - endY) / 200;
             power = Math.min(power, 1);
             power = Math.max(power, .5);
-
-            if (power == .5)
-                angle = aim = (float) (Math.PI / 3);
-            else {
-                aim = (float) Math.atan((endY - startY) / (startX - endX));
-                aim = (float) Math.min(aim, Math.PI / 2.1);
-                aim = (float) Math.max(aim, -Math.PI / 2.1);
-                angle = aim;
-            }
         } else {
             if (sticking) {
-                angle += (snapToAngle - angle) / 3.0f;
-                if (Math.abs(snapToAngle - angle) < 1E-3) angle = snapToAngle;
+                double dTheta = snapToAngle - angle;
+                dTheta = dTheta > Math.PI ? dTheta - 2 * Math.PI : dTheta;
+                dTheta = dTheta < -Math.PI ? dTheta + 2 * Math.PI : dTheta;
+
+                angle += dTheta / 3.0;
+                if (Math.abs(dTheta) < 1E-3) angle = snapToAngle;
             } else {
                 velX = plungerSpeed * Math.cos(aim);
                 velY = Math.max((plungerSpeed * Math.sin(aim) + gravity * airTime++), -20);
                 angle = (float) Math.atan(velY / velX);
+                if (velX < 0) angle += Math.PI;
             }
         }
 
@@ -125,15 +129,25 @@ class Plunger extends CollisionObject {
 
     @Override
     void collide(PointF normal) {
-        sticking = true;
-        velX = velY = 0;
+        if (collided) snapToAngle = angle;  //secondary collision
+        else {
+            sticking = true;
 
-        if (normal.x == 0 && normal.y > 0) snapToAngle = (float) (-Math.PI / 2);
-        else if (normal.x == 0 && normal.y < 0) snapToAngle = (float) (Math.PI / 2);
-        else this.snapToAngle = (float) Math.atan(-normal.y / normal.x);
+            if (normal.x == 0 && normal.y < 0) snapToAngle = (float) (-Math.PI / 2);
+            else if (normal.x == 0 && normal.y > 0) snapToAngle = (float) (Math.PI / 2);
+            else this.snapToAngle = (float) -Math.atan(normal.y / normal.x);
 
-        if (angle < snapToAngle) changePivot(points[0], points[1]);
-        else changePivot(points[2], points[3]);
+            if (normal.x > 0) snapToAngle += Math.PI;
+
+            float tempAngle = angle;
+            if (tempAngle < snapToAngle) tempAngle += 2 * Math.PI;
+            else if (tempAngle > snapToAngle + 2 * Math.PI) tempAngle -= 2 * Math.PI;
+
+            if (tempAngle > snapToAngle + Math.PI) changePivot(points[0], points[1]); //CCW
+            else changePivot(points[2], points[3]); //CW
+
+            velX = velY = 0;
+        }
     }
 
     @Override
@@ -168,5 +182,13 @@ class Plunger extends CollisionObject {
 
     boolean tileCollisionsEnabled() {
         return fired && !(sticking && angle == snapToAngle);
+    }
+
+    boolean isSticking() {
+        return sticking;
+    }
+
+    void hasCollided() {
+        collided = true;
     }
 }

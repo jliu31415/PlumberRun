@@ -26,7 +26,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     private final LevelCreator levelCreator;
     private final Player player;
     private final GameLoop gameLoop;
-    private ArrayList<Plunger> plungers;
+    public ArrayList<Plunger> plungers;
     private boolean aiming = false;   //true if user swipes to shoot plunger
 
     Game(Context context) {
@@ -80,7 +80,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                     gameLoop.startLevel();
                 else if (event.getX() > Game.scaleX(canvasX * .5) && event.getY() > Game.scaleY(canvasY * .5))
                     player.jump();
-                else {
+                else if (totalOffsetX > 0){
                     aiming = true;
                     player.windUp();
                     plungers.add(0, new Plunger(plunger_sprite, player, event.getX(), event.getY()));
@@ -126,8 +126,9 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         canvas.drawColor(ContextCompat.getColor(getContext(), R.color.primary_light));
         levelCreator.draw(canvas);
         player.draw(canvas);
-        for (int i = 0; i < plungers.size(); i++) { //don't use foreach loop
+        for (int i = 0; i < plungers.size(); i++) {
             plungers.get(i).draw(canvas);
+            plungers.get(i).drawPoints(canvas);
         }
 
         canvas.translate(totalOffsetX, 0);
@@ -148,6 +149,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                     for (Tile tile : levelCreator.getSurroundingTiles(plungers.get(i).getBounds())) {
                         levelCreator.updateCollisions(plungers.get(i), tile);
                     }
+                    if (plungers.get(i).isSticking()) plungers.get(i).hasCollided();
                 }
             }
         }
@@ -171,9 +173,5 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
     static double scaleY(double pointY) {
         return canvasScaleX * pointY;
-    }
-
-    static Rect getCanvasDimensions() {
-        return new Rect(0, 0, canvasX, canvasY);
     }
 }

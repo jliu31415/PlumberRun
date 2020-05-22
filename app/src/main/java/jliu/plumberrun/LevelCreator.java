@@ -36,7 +36,7 @@ class LevelCreator {
 
     void draw(Canvas canvas) {
         int framePosX, framePosY;
-        for (int col = Game.cameraFrame.left / tileSize; col < Game.cameraFrame.left / tileSize + level.size(); col++) {
+        for (int col = Game.cameraFrame.left / tileSize; col < Game.cameraFrame.right / tileSize; col++) {
             for (int row = 0; row < level.get(col).length; row++) {
                 int tileID = level.get(col)[row];
                 if (tileID-- != 0) {
@@ -59,7 +59,7 @@ class LevelCreator {
         if (offset1 != null && offset2 != null) {
             if ((collisionObject1.getPosition().centerX() - collisionObject2.getPosition().centerX()) * offset1.x < 0) {
                 offset1.negate();
-            } else if ((collisionObject1.getPosition().centerY() - collisionObject2.getPosition().centerY()) * offset1.y > 0) {
+            } else if ((collisionObject1.getPosition().centerY() - collisionObject2.getPosition().centerY()) * offset1.y < 0) {
                 offset1.negate();
             }
 
@@ -69,7 +69,7 @@ class LevelCreator {
                 offset1.y = (int) (Math.ceil(Math.abs(offset1.y))) * (offset1.y / Math.abs(offset1.y));
 
             collisionObject1.collide(offset1);
-            collisionObject1.offSetPosition((int) offset1.x, (int) -offset1.y);
+            collisionObject1.offSetPosition((int) offset1.x, (int) offset1.y);  //offset.y is not inverted
         }
     }
 
@@ -87,8 +87,9 @@ class LevelCreator {
             float maxProjection2 = Float.NEGATIVE_INFINITY;
 
             edge.set(points1[(i + 2) % points1.length] - points1[i], points1[(i + 3) % points1.length] - points1[i + 1]);
-            edge.x /= Math.hypot(edge.x, edge.y);
-            edge.y /= Math.hypot(edge.x, edge.y);
+            double hypotenuse = Math.hypot(edge.x, edge.y);
+            edge.x /= hypotenuse;
+            edge.y /= hypotenuse;
 
             for (int j = 0; j < points1.length; j += 2) {
                 dotProjection = -edge.y * points1[j] + edge.x * points1[j + 1];

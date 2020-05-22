@@ -18,17 +18,20 @@ class Tile extends CollisionObject {
 
     @Override
     void setPoints() {
-        if (tileID < 6 || true)  //full tile
-            points = new float[]{posX, posY, posX + tileSize, posY,
-                    posX + tileSize, posY + tileSize, posX, posY + tileSize};
-        else if (tileID < 8) //rounded tile
-            points = new float[0];
-        else if (tileID < 10)   //slope
-            points = new float[0];
-        else if (tileID < 12)   //slope connector
-            points = new float[0];
-        else if (tileID < 16)    //half tile
-            points = new float[0];
+        if (tileID <= 7)  //full tile
+            points = new float[]{posX, posY, posX + tileSize, posY, posX + tileSize, posY + tileSize, posX, posY + tileSize};
+        else if (tileID == 8) //slope up
+            points = new float[]{posX, posY + tileSize, posX + tileSize, posY, posX + tileSize, posY + tileSize};
+        else if (tileID == 9)   //slope down
+            points = new float[]{posX, posY, posX + tileSize, posY + tileSize, posX, posY + tileSize};
+        else if (tileID == 10)   //rounded left
+            points = new float[]{posX, posY, posX + tileSize, posY, posX + tileSize, posY + tileSize,
+                    posX + .25f * tileSize, posY + .75f * tileSize};
+        else if (tileID == 11)   //rounded right
+            points = new float[]{posX, posY, posX + tileSize, posY, posX + .75f * tileSize, posY + .75f * tileSize,
+                    posX + tileSize, posY + tileSize};
+        else if (tileID <= 15)  //half tile
+            points = new float[]{posX, posY, posX + tileSize, posY, posX + tileSize, posY + .5f * tileSize, posX, posY + .5f * tileSize};
     }
 
     @Override
