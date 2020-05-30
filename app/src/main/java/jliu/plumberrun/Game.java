@@ -186,4 +186,5 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     static Rect getCanvasDimensions() {
         return new Rect(0, 0, canvasX, canvasY);
     }
+    
 }

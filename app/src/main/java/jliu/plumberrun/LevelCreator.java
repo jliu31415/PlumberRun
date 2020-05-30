@@ -17,7 +17,7 @@ class LevelCreator {
     private Flag flag;
     private Rect spriteFrame;
     private Rect tilePosition;
-    private final int spriteSize; //spriteWidth = spriteHeight
+    private final int spriteSize; //tile spriteWidth = spriteHeight
     private static final int tileSize = Tile.tileSize;
     private boolean levelComplete;
     private ArrayList<fireworkParticle> fireworks;
@@ -66,9 +66,11 @@ class LevelCreator {
         if (levelComplete) {
             if (fireworks == null) {
                 fireworks = new ArrayList<>();
-                for (int i = 0; i < 20; i++) {
-                    fireworks.add(new fireworkParticle(Game.cameraFrame.left + Game.getCanvasDimensions().width() * Math.random(),
-                            Game.getCanvasDimensions().height()));
+                for (int i = 0; i < 5; i++) {
+                    Paint color = new Paint();
+                    color.setColor(Color.rgb((int) (255 * Math.random()), (int) (255 * Math.random()), (int) (255 * Math.random())));
+                    fireworks.add(new fireworkParticle(Game.cameraFrame.left + Game.getCanvasDimensions().width() / 5.0 * (i + Math.random()),
+                            Game.getCanvasDimensions().height(), true, color));
                 }
             }
             for (fireworkParticle f : fireworks) {
@@ -79,6 +81,12 @@ class LevelCreator {
 
     void update() {
         if (flag != null) flag.updateFrame();
+        if (fireworks != null) {
+            for (int i = 0; i < fireworks.size(); i++) {
+                fireworks.get(i).update();
+                if (fireworks.get(i).canRemove()) fireworks.remove(i--);
+            }
+        }
     }
 
     boolean updateCollisions(CollisionObject collisionObject1, CollisionObject collisionObject2) {
@@ -187,17 +195,60 @@ class LevelCreator {
 
     static class fireworkParticle {
         private double posX, posY;
+        private double velX, velY;
+        ArrayList<fireworkParticle> fragments;
         private Paint color;
+        private boolean parent, exploded;
 
-        fireworkParticle(double posX, double posY) {
+        fireworkParticle(double posX, double posY, boolean parent, Paint color) {
+            this.parent = parent;   //parent objects differ from exploded fragments
             this.posX = posX;
             this.posY = posY;
-            color = new Paint();
-            color.setColor(Color.rgb((int) (255 * Math.random()), (int) (255 * Math.random()), (int) (255 * Math.random())));
+            if (parent) {
+                velX = 0;
+                velY = 30 + 15 * Math.random();
+            } else {
+                velX = 10 * Math.random() - 5;
+                velY = 10 * Math.random() - 5;
+            }
+
+            this.color = color;
+        }
+
+        void update() {
+            if (parent && !exploded && velY < 0) explode();
+            if (fragments != null) {
+                for (int i = 0; i < fragments.size(); i++) {
+                    fragments.get(i).update();
+                    if (fragments.get(i).canRemove()) fragments.remove(i--);
+                }
+            }
+
+            posX += velX;
+            posY -= velY;
+            velY--;
+        }
+
+        private void explode() {
+            exploded = true;
+            fragments = new ArrayList<>();
+            for (int i = 0; i < 10; i++) {
+                fragments.add(new fireworkParticle(this.posX, this.posY, false, this.color));
+            }
         }
 
         void draw(Canvas canvas) {
-            canvas.drawCircle((float) posX, (float) posY, 10, color);
+            if (!exploded)  //stop drawing parent after explosion
+                canvas.drawCircle((float) Game.scaleX(posX), (float) Game.scaleY(posY), (float) Game.scaleX(10), color);
+            if (fragments != null) {
+                for (fireworkParticle f : fragments) f.draw(canvas);
+            }
+        }
+
+        boolean canRemove() {
+            if (exploded && fragments.size() == 0)
+                return true;    //condition for removing parent
+            return !parent && posY > Game.getCanvasDimensions().height();  //condition for removing fragment
         }
     }
 }

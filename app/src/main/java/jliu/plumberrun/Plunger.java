@@ -50,9 +50,9 @@ class Plunger extends CollisionObject {
         //draw arc
         if (!fired) {
             for (double i = 5.0 / power; i < 50; i += 5) {
-                canvas.drawCircle((float) (pivotX + power * plungerMaxSpeed * i * Math.cos(angle)),
-                        (float) (pivotY - (power * plungerMaxSpeed * i * Math.sin(angle) + gravity * Math.pow(i, 2) / 2.0)),
-                        (float) ((70 - i) / 5.0), white);
+                canvas.drawCircle((float) Game.scaleX(pivotX + power * plungerMaxSpeed * i * Math.cos(angle)),
+                        (float) Game.scaleY(pivotY - (power * plungerMaxSpeed * i * Math.sin(angle) + gravity * Math.pow(i, 2) / 2.0)),
+                        (float) Game.scaleX((70 - i) / 5.0), white);
             }
         }
     }
