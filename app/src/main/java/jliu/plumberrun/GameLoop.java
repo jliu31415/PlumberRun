@@ -8,7 +8,7 @@ class GameLoop extends Thread {
     private final Game game;
     private final SurfaceHolder surfaceHolder;
     private final LevelCreator levelCreator;
-    private final static double TARGET_UPS = 30;
+    private final static double TARGET_UPS = 35;
     private double averageUPS, averageFPS;
     private boolean running = true, levelStarted = false;
 

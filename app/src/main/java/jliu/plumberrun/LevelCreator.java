@@ -2,6 +2,8 @@ package jliu.plumberrun;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.Rect;
 
@@ -11,16 +13,20 @@ class LevelCreator {
     private final ArrayList<ArrayList<Integer[]>> allLevels;
     private ArrayList<Integer[]> level;
     private int levelID;
-    private final Bitmap tilesSprite;
+    private final Bitmap tileSprites, flagSprites;
+    private Flag flag;
     private Rect spriteFrame;
     private Rect tilePosition;
-    private final int spriteSize;
+    private final int spriteSize; //spriteWidth = spriteHeight
     private static final int tileSize = Tile.tileSize;
+    private boolean levelComplete;
+    private ArrayList<fireworkParticle> fireworks;
 
-    LevelCreator(ArrayList<ArrayList<Integer[]>> allLevels, Bitmap tilesSprite) {
+    LevelCreator(ArrayList<ArrayList<Integer[]>> allLevels, Bitmap tileSprites, Bitmap flagSprites) {
         this.allLevels = allLevels;
-        this.tilesSprite = tilesSprite;
-        spriteSize = tilesSprite.getWidth() / 5;
+        this.tileSprites = tileSprites;
+        this.flagSprites = flagSprites;
+        spriteSize = tileSprites.getWidth() / 5;
         spriteFrame = new Rect(0, 0, spriteSize, spriteSize);
         tilePosition = new Rect(0, 0, tileSize, tileSize);
     }
@@ -32,25 +38,50 @@ class LevelCreator {
     void createLevel(int levelID) {
         this.levelID = levelID;
         level = allLevels.get(levelID);
+        levelComplete = false;
     }
 
     void draw(Canvas canvas) {
         int framePosX, framePosY;
-        for (int col = Game.cameraFrame.left / tileSize; col < Game.cameraFrame.right / tileSize; col++) {
+        for (int col = Game.cameraFrame.left / tileSize; col <= Game.cameraFrame.right / tileSize; col++) {
+            if (col == level.size()) break;
             for (int row = 0; row < level.get(col).length; row++) {
-                int tileID = level.get(col)[row];
-                if (tileID-- != 0) {
-                    framePosX = spriteSize * (tileID % 5);
-                    framePosY = spriteSize * (tileID / 5);
+                int id = level.get(col)[row];
+                if (Tile.isTile(id)) {
+                    framePosX = spriteSize * (--id % 5);
+                    framePosY = spriteSize * (id / 5);
                     spriteFrame.offsetTo(framePosX, framePosY);
                     tilePosition.offsetTo(col * tileSize, row * tileSize);
-                    canvas.drawBitmap(tilesSprite, spriteFrame, Game.scaleRect(tilePosition), null);
+                    canvas.drawBitmap(tileSprites, spriteFrame, Game.scaleRect(tilePosition), null);
                 }
+                if (id == 99) {
+                    if (flag == null)
+                        flag = new Flag(flagSprites, col * tileSize, (row - .5) * tileSize);
+                    flag.draw(canvas);
+                }
+            }
+        }
+
+        //draw fireworks
+        if (levelComplete) {
+            if (fireworks == null) {
+                fireworks = new ArrayList<>();
+                for (int i = 0; i < 20; i++) {
+                    fireworks.add(new fireworkParticle(Game.cameraFrame.left + Game.getCanvasDimensions().width() * Math.random(),
+                            Game.getCanvasDimensions().height()));
+                }
+            }
+            for (fireworkParticle f : fireworks) {
+                f.draw(canvas);
             }
         }
     }
 
-    void updateCollisions(CollisionObject collisionObject1, CollisionObject collisionObject2) {
+    void update() {
+        if (flag != null) flag.updateFrame();
+    }
+
+    boolean updateCollisions(CollisionObject collisionObject1, CollisionObject collisionObject2) {
         float[] points1 = collisionObject1.getBounds();
         float[] points2 = collisionObject2.getBounds();
         PointF offset1 = getProjectionOffset(points2, points1);
@@ -70,7 +101,9 @@ class LevelCreator {
 
             collisionObject1.collide(offset1);
             collisionObject1.offSetPosition((int) offset1.x, (int) offset1.y);  //offset.y is not inverted
+            return true;
         }
+        return false;
     }
 
     //projection onto points1 polygon; minimum offset returned as a Points vector
@@ -131,7 +164,7 @@ class LevelCreator {
         do {
             try {
                 int tileID = level.get(coordinateX / tileSize)[coordinateY / tileSize];
-                if (tileID > 0)
+                if (Tile.isTile(tileID))
                     surroundingTiles.add(new Tile(tileID, coordinateX, coordinateY));
             } catch (IndexOutOfBoundsException e) {
                 e.printStackTrace();
@@ -144,5 +177,27 @@ class LevelCreator {
         } while (coordinateX != minX || coordinateY != minY);
 
         return surroundingTiles;
+    }
+
+    void checkLevelComplete(Player player) {
+        if (flag != null && updateCollisions(player, flag)) {
+            levelComplete = true;
+        }
+    }
+
+    static class fireworkParticle {
+        private double posX, posY;
+        private Paint color;
+
+        fireworkParticle(double posX, double posY) {
+            this.posX = posX;
+            this.posY = posY;
+            color = new Paint();
+            color.setColor(Color.rgb((int) (255 * Math.random()), (int) (255 * Math.random()), (int) (255 * Math.random())));
+        }
+
+        void draw(Canvas canvas) {
+            canvas.drawCircle((float) posX, (float) posY, 10, color);
+        }
     }
 }

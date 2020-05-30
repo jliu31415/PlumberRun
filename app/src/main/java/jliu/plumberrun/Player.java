@@ -6,32 +6,35 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 
 class Player extends CollisionObject {
-    private final Bitmap playerSprite;
-    private final int spriteSize;
+    private final Bitmap plumberSprites;
+    private final int spriteSize;   //spriteWidth = spriteHeight
     private Rect spriteFrame;
     private Rect playerPosition;
     private float[] points; //bounding points
     private int frameCount = 0;
-    private static final int imageSize = Tile.tileSize * 2;
-    private double maxSpeedX = 15, maxSpeedY = 30;
+    private static final int playerSize = Tile.tileSize * 2;
+    private double maxSpeedX = 10, maxSpeedY = 30;
     private double velX = maxSpeedX, velY = 0;
-    private boolean airBorne = false, windUp = false, throwing = false;
+    private int freeFallCounter = 0;
+    private boolean airborne = false, windUp = false, throwing = false;
     private boolean slowMotion = false;
-    private final double gravity = -2;
+    private final double gravity = -1.5;
 
-    Player(Bitmap playerSprite) {
-        this.playerSprite = playerSprite;
-        spriteSize = playerSprite.getWidth() / 5;
+    Player(Bitmap plumberSprites) {
+        this.plumberSprites = plumberSprites;
+        spriteSize = plumberSprites.getWidth() / 5;
         spriteFrame = new Rect(0, 0, spriteSize, spriteSize);
-        playerPosition = new Rect(-imageSize, 800, 0, 800 + imageSize);
+        playerPosition = new Rect(-playerSize, 800, 0, 800 + playerSize);
         setPoints();
     }
 
     void draw(Canvas canvas) {
-        canvas.drawBitmap(playerSprite, spriteFrame, Game.scaleRect(playerPosition), null);
+        canvas.drawBitmap(plumberSprites, spriteFrame, Game.scaleRect(playerPosition), null);
     }
 
     void update() {
+        offSetPosition((int) velX, (int) -velY);    //offset after checking collisions (before next update)
+
         if (!throwing) {
             frameCount = frameCount % 10;
         } else {
@@ -50,13 +53,12 @@ class Player extends CollisionObject {
             velY = Math.min(0, velY - .1);
         }
 
-        offSetPosition((int) velX, (int) -velY);
-        if (velY < 0) airBorne = true;   //free fall without jumping
+        if (freeFallCounter++ > 5) airborne = true; //cannot jump when in free fall
     }
 
     void jump() {
-        if (!airBorne) {
-            airBorne = true;
+        if (!airborne) {
+            airborne = true;
             velY = maxSpeedY;
         }
     }
@@ -80,10 +82,10 @@ class Player extends CollisionObject {
 
     @Override
     void setPoints() {
-        points = new float[]{playerPosition.left + imageSize / 4.0f, playerPosition.top,
-                playerPosition.left + 3 * imageSize / 4.0f, playerPosition.top,
-                playerPosition.left + 3 * imageSize / 4.0f, playerPosition.top + 7 * imageSize / 8.0f,
-                playerPosition.left + imageSize / 4.0f, playerPosition.top + 7 * imageSize / 8.0f};
+        points = new float[]{playerPosition.left + playerSize / 4.0f, playerPosition.top,
+                playerPosition.left + 3 * playerSize / 4.0f, playerPosition.top,
+                playerPosition.left + 3 * playerSize / 4.0f, playerPosition.top + 7 * playerSize / 8.0f,
+                playerPosition.left + playerSize / 4.0f, playerPosition.top + 7 * playerSize / 8.0f};
     }
 
     @Override
@@ -97,9 +99,12 @@ class Player extends CollisionObject {
 
     @Override
     void collide(PointF normal) {
-        if (normal.y < 0) airBorne = false;
+        if (normal.y < 0) {
+            airborne = false;
+            freeFallCounter = 0;
+        }
         velX = maxSpeedX * -normal.y / Math.hypot(normal.x, normal.y);   //normal y is already inverted
-        if (!airBorne) velY = velX * -normal.x / Math.hypot(normal.x, normal.y);
+        if (!airborne) velY = velX * -normal.x / Math.hypot(normal.x, normal.y);
     }
 
     @Override

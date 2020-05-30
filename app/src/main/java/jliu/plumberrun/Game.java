@@ -36,11 +36,12 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         surfaceHolder.addCallback(this);
 
         Bitmap tile_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.tile_sprites);
+        Bitmap flag_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.flag_sprites);
         Bitmap plumber_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.plumber_sprites);
         plunger_sprite = BitmapFactory.decodeResource(getResources(), R.drawable.plunger_sprite);
 
         allLevels = parseAllLevels();
-        levelCreator = new LevelCreator(allLevels, tile_sprites);
+        levelCreator = new LevelCreator(allLevels, tile_sprites, flag_sprites);
         player = new Player(plumber_sprites);
         gameLoop = new GameLoop(this, surfaceHolder, levelCreator);
         plungers = new ArrayList<>();
@@ -55,16 +56,22 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         int id = 0;
         boolean autoFill;
         while (scan.hasNext()) {
-            while (!scan.hasNextInt()) scan.nextLine();
-            Integer[] column = new Integer[numRows];
-            autoFill = false;
-            for (int i = numRows - 1; i >= 0; i--) {
-                if (!autoFill) id = scan.nextInt();
-                if (id == -1) autoFill = true;
-                if (!autoFill) column[i] = id;
-                else column[i] = column[i + 1];
+            if (!scan.hasNextInt()) {
+                if (scan.next().equals("*")) {
+                    int repeat = scan.nextInt();
+                    while (repeat-- > 0) level.add(level.get(level.size() - 1));
+                } else scan.nextLine(); //ignore text comments
+            } else {
+                Integer[] column = new Integer[numRows];
+                autoFill = false;
+                for (int i = numRows - 1; i >= 0; i--) {
+                    if (!autoFill) id = scan.nextInt();
+                    if (id == -1) autoFill = true;
+                    if (!autoFill) column[i] = id;
+                    else column[i] = column[i + 1];
+                }
+                level.add(column);
             }
-            level.add(column);
         }
         allLevels.add(level);
         scan.close();
@@ -80,7 +87,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                     gameLoop.startLevel();
                 else if (event.getX() > Game.scaleX(canvasX * .5) && event.getY() > Game.scaleY(canvasY * .5))
                     player.jump();
-                else if (totalOffsetX > 0){
+                else if (totalOffsetX > 0) {
                     aiming = true;
                     player.windUp();
                     plungers.add(0, new Plunger(plunger_sprite, player, event.getX(), event.getY()));
@@ -128,24 +135,25 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         player.draw(canvas);
         for (int i = 0; i < plungers.size(); i++) {
             plungers.get(i).draw(canvas);
-            plungers.get(i).drawPoints(canvas);
         }
 
         canvas.translate(totalOffsetX, 0);
     }
 
     void update() {
+        levelCreator.update();
         player.update();
         for (Tile tile : levelCreator.getSurroundingTiles(player.getBounds())) {
             levelCreator.updateCollisions(player, tile);
         }
+        levelCreator.checkLevelComplete(player);
 
         for (int i = 0; i < plungers.size(); i++) {
             if (plungers.get(i).outOfPlay())
                 plungers.remove(i--);
             else {
                 plungers.get(i).update();
-                if (plungers.get(i).tileCollisionsEnabled()) {
+                if (plungers.get(i).collisionsEnabled()) {
                     for (Tile tile : levelCreator.getSurroundingTiles(plungers.get(i).getBounds())) {
                         levelCreator.updateCollisions(plungers.get(i), tile);
                     }
@@ -173,5 +181,9 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
     static double scaleY(double pointY) {
         return canvasScaleX * pointY;
+    }
+
+    static Rect getCanvasDimensions() {
+        return new Rect(0, 0, canvasX, canvasY);
     }
 }

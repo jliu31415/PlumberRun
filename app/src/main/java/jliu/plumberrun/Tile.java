@@ -53,4 +53,8 @@ class Tile extends CollisionObject {
     void collide(PointF normal) {
 
     }
+
+    static boolean isTile(int id) {
+        return 0 < id && id < 16;
+    }
 }
