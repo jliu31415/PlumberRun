@@ -7,15 +7,13 @@ import android.view.SurfaceHolder;
 class GameLoop extends Thread {
     private final Game game;
     private final SurfaceHolder surfaceHolder;
-    private final LevelCreator levelCreator;
     private final static double TARGET_UPS = 35;
     private double averageUPS, averageFPS;
-    private boolean running = true, levelStarted = false;
+    private boolean running = true;
 
-    GameLoop(Game game, SurfaceHolder surfaceHolder, LevelCreator levelCreator) {
+    GameLoop(Game game, SurfaceHolder surfaceHolder) {
         this.game = game;
         this.surfaceHolder = surfaceHolder;
-        this.levelCreator = levelCreator;
     }
 
     @Override
@@ -27,68 +25,50 @@ class GameLoop extends Thread {
         startTime = System.currentTimeMillis();
 
         while (running) {
-            if (!levelStarted) {
-                //draw start screen
-                levelCreator.createLevel(0);
-                startTime = System.currentTimeMillis();
-            } else {
-                try {
-                    canvas = surfaceHolder.lockCanvas();
-                    synchronized (surfaceHolder) {
-                        game.update();
-                        updateCount++;
-                        game.draw(canvas);
-                    }
-                } catch (IllegalArgumentException e) {
-                    e.printStackTrace();
-                } finally {
-                    if (canvas != null) {
-                        try {
-                            surfaceHolder.unlockCanvasAndPost(canvas);
-                            frameCount++;
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
+            try {
+                canvas = surfaceHolder.lockCanvas();
+                synchronized (surfaceHolder) {
+                    game.update();
+                    updateCount++;
+                    game.draw(canvas);
                 }
-
-                elapsedTime = System.currentTimeMillis() - startTime;
-                sleepTime = (long) (updateCount * (1E+3 / TARGET_UPS) - elapsedTime);
-                if (sleepTime > 0) {
+            } catch (IllegalArgumentException e) {
+                e.printStackTrace();
+            } finally {
+                if (canvas != null) {
                     try {
-                        sleep(sleepTime);
-                    } catch (InterruptedException e) {
+                        surfaceHolder.unlockCanvasAndPost(canvas);
+                        frameCount++;
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
-                while (sleepTime < 0) {
-                    game.update();
-                    updateCount++;
-                    elapsedTime = System.currentTimeMillis() - startTime;
-                    sleepTime = (long) (updateCount * (1E+3 / TARGET_UPS) - elapsedTime);
-                }
+            }
 
-                if (elapsedTime > 1000) {
-                    averageUPS = updateCount * elapsedTime * 1E-3;
-                    averageFPS = frameCount * elapsedTime * 1E-3;
-                    printUPSFPS();
-                    updateCount = frameCount = 0;
-                    startTime = System.currentTimeMillis();
+            elapsedTime = System.currentTimeMillis() - startTime;
+            sleepTime = (long) (updateCount * (1E+3 / TARGET_UPS) - elapsedTime);
+            if (sleepTime > 0) {
+                try {
+                    sleep(sleepTime);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
+            while (sleepTime < 0) {
+                game.update();
+                updateCount++;
+                elapsedTime = System.currentTimeMillis() - startTime;
+                sleepTime = (long) (updateCount * (1E+3 / TARGET_UPS) - elapsedTime);
+            }
+
+            if (elapsedTime > 1000) {
+                averageUPS = updateCount * elapsedTime * 1E-3;
+                averageFPS = frameCount * elapsedTime * 1E-3;
+                printUPSFPS();
+                updateCount = frameCount = 0;
+                startTime = System.currentTimeMillis();
+            }
         }
-    }
-
-    void startLevel() {
-        levelStarted = true;
-    }
-
-    boolean levelStarted() {
-        return levelStarted;
-    }
-
-    void endGame() {
-        running = false;
     }
 
     private void printUPSFPS() {

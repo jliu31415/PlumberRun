@@ -10,9 +10,7 @@ import android.graphics.Rect;
 import java.util.ArrayList;
 
 class LevelCreator {
-    private final ArrayList<ArrayList<Integer[]>> allLevels;
     private ArrayList<Integer[]> level;
-    private int levelID;
     private final Bitmap tileSprites, flagSprites;
     private Flag flag;
     private Rect spriteFrame;
@@ -20,10 +18,10 @@ class LevelCreator {
     private final int spriteSize; //tile spriteWidth = spriteHeight
     private static final int tileSize = Tile.tileSize;
     private boolean levelComplete;
-    private ArrayList<fireworkParticle> fireworks;
+    private ArrayList<FireworkParticle> fireworks;
 
-    LevelCreator(ArrayList<ArrayList<Integer[]>> allLevels, Bitmap tileSprites, Bitmap flagSprites) {
-        this.allLevels = allLevels;
+    LevelCreator(ArrayList<Integer[]> level, Bitmap tileSprites, Bitmap flagSprites) {
+        this.level = level;
         this.tileSprites = tileSprites;
         this.flagSprites = flagSprites;
         spriteSize = tileSprites.getWidth() / 5;
@@ -31,19 +29,10 @@ class LevelCreator {
         tilePosition = new Rect(0, 0, tileSize, tileSize);
     }
 
-    int getCurrentLevel() {
-        return levelID;
-    }
-
-    void createLevel(int levelID) {
-        this.levelID = levelID;
-        level = allLevels.get(levelID);
-        levelComplete = false;
-    }
-
     void draw(Canvas canvas) {
         int framePosX, framePosY;
-        for (int col = Game.cameraFrame.left / tileSize; col <= Game.cameraFrame.right / tileSize; col++) {
+
+        for (int col = Game.getCameraFrame().left / tileSize; col <= Game.getCameraFrame().right / tileSize; col++) {
             if (col == level.size()) break;
             for (int row = 0; row < level.get(col).length; row++) {
                 int id = level.get(col)[row];
@@ -69,18 +58,18 @@ class LevelCreator {
                 for (int i = 0; i < 5; i++) {
                     Paint color = new Paint();
                     color.setColor(Color.rgb((int) (255 * Math.random()), (int) (255 * Math.random()), (int) (255 * Math.random())));
-                    fireworks.add(new fireworkParticle(Game.cameraFrame.left + Game.getCanvasDimensions().width() / 5.0 * (i + Math.random()),
+                    fireworks.add(new FireworkParticle(Game.getCameraFrame().left + Game.getCanvasDimensions().width() / 5.0 * (i + Math.random()),
                             Game.getCanvasDimensions().height(), true, color));
                 }
             }
-            for (fireworkParticle f : fireworks) {
+            for (FireworkParticle f : fireworks) {
                 f.draw(canvas);
             }
         }
     }
 
     void update() {
-        if (flag != null) flag.updateFrame();
+        if (flag != null) flag.update();
         if (fireworks != null) {
             for (int i = 0; i < fireworks.size(); i++) {
                 fireworks.get(i).update();
@@ -90,10 +79,10 @@ class LevelCreator {
     }
 
     boolean updateCollisions(CollisionObject collisionObject1, CollisionObject collisionObject2) {
-        float[] points1 = collisionObject1.getBounds();
-        float[] points2 = collisionObject2.getBounds();
-        PointF offset1 = getProjectionOffset(points2, points1);
-        PointF offset2 = getProjectionOffset(points1, points2);
+        float[] bounds1 = collisionObject1.getBounds();
+        float[] bounds2 = collisionObject2.getBounds();
+        PointF offset1 = getProjectionOffset(bounds2, bounds1);
+        PointF offset2 = getProjectionOffset(bounds1, bounds2);
 
         if (offset1 != null && offset2 != null) {
             if ((collisionObject1.getPosition().centerX() - collisionObject2.getPosition().centerX()) * offset1.x < 0) {
@@ -114,32 +103,32 @@ class LevelCreator {
         return false;
     }
 
-    //projection onto points1 polygon; minimum offset returned as a Points vector
-    private PointF getProjectionOffset(float[] points1, float[] points2) {
+    //projection onto bounds1 polygon; minimum offset returned as a Points vector
+    private PointF getProjectionOffset(float[] bounds1, float[] bounds2) {
         PointF ret = new PointF();
         PointF edge = new PointF();
         float overlap, globalOverlap = Float.POSITIVE_INFINITY;
         float dotProjection;
 
-        for (int i = 0; i < points1.length; i += 2) {
+        for (int i = 0; i < bounds1.length; i += 2) {
             float minProjection1 = Float.POSITIVE_INFINITY;
             float maxProjection1 = Float.NEGATIVE_INFINITY;
             float minProjection2 = Float.POSITIVE_INFINITY;
             float maxProjection2 = Float.NEGATIVE_INFINITY;
 
-            edge.set(points1[(i + 2) % points1.length] - points1[i], points1[(i + 3) % points1.length] - points1[i + 1]);
+            edge.set(bounds1[(i + 2) % bounds1.length] - bounds1[i], bounds1[(i + 3) % bounds1.length] - bounds1[i + 1]);
             double hypotenuse = Math.hypot(edge.x, edge.y);
             edge.x /= hypotenuse;
             edge.y /= hypotenuse;
 
-            for (int j = 0; j < points1.length; j += 2) {
-                dotProjection = -edge.y * points1[j] + edge.x * points1[j + 1];
+            for (int j = 0; j < bounds1.length; j += 2) {
+                dotProjection = -edge.y * bounds1[j] + edge.x * bounds1[j + 1];
                 minProjection1 = Math.min(minProjection1, dotProjection);
                 maxProjection1 = Math.max(maxProjection1, dotProjection);
             }
 
-            for (int j = 0; j < points2.length; j += 2) {
-                dotProjection = -edge.y * points2[j] + edge.x * points2[j + 1];
+            for (int j = 0; j < bounds2.length; j += 2) {
+                dotProjection = -edge.y * bounds2[j] + edge.x * bounds2[j + 1];
                 minProjection2 = Math.min(minProjection2, dotProjection);
                 maxProjection2 = Math.max(maxProjection2, dotProjection);
             }
@@ -193,14 +182,14 @@ class LevelCreator {
         }
     }
 
-    static class fireworkParticle {
+    static class FireworkParticle {
         private double posX, posY;
         private double velX, velY;
-        ArrayList<fireworkParticle> fragments;
+        ArrayList<FireworkParticle> fragments;
         private Paint color;
         private boolean parent, exploded;
 
-        fireworkParticle(double posX, double posY, boolean parent, Paint color) {
+        FireworkParticle(double posX, double posY, boolean parent, Paint color) {
             this.parent = parent;   //parent objects differ from exploded fragments
             this.posX = posX;
             this.posY = posY;
@@ -233,7 +222,7 @@ class LevelCreator {
             exploded = true;
             fragments = new ArrayList<>();
             for (int i = 0; i < 10; i++) {
-                fragments.add(new fireworkParticle(this.posX, this.posY, false, this.color));
+                fragments.add(new FireworkParticle(this.posX, this.posY, false, this.color));
             }
         }
 
@@ -241,7 +230,7 @@ class LevelCreator {
             if (!exploded)  //stop drawing parent after explosion
                 canvas.drawCircle((float) Game.scaleX(posX), (float) Game.scaleY(posY), (float) Game.scaleX(10), color);
             if (fragments != null) {
-                for (fireworkParticle f : fragments) f.draw(canvas);
+                for (FireworkParticle f : fragments) f.draw(canvas);
             }
         }
 

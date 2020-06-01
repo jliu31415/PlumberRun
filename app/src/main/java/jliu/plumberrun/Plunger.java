@@ -25,7 +25,7 @@ class Plunger extends CollisionObject {
     private int airTime = 0;
     private boolean fired = false, sticking = false, collided = false;
     private float pivotX, pivotY;  //image rotation pivot coordinates
-    private float[] points;  //bounding points
+    private float[] bounds;  //bounding points
     private final Paint white;
 
     Plunger(Bitmap plungerSprites, Player player, float touchX, float touchY) {
@@ -37,7 +37,7 @@ class Plunger extends CollisionObject {
                 player.getPosition().left + plungerOffsetX + plungerSize, player.getPosition().top + plungerSize);
         pivotX = plungerPosition.centerX();
         pivotY = plungerPosition.centerY();
-        setPoints();
+        setBounds();
         white = new Paint();
         white.setColor(Color.WHITE);
     }
@@ -93,14 +93,27 @@ class Plunger extends CollisionObject {
         }
     }
 
-    void fire() {
-        fired = true;
-        plungerSpeed = power * plungerMaxSpeed;
+    @Override
+    void setBounds() {
+        bounds = new float[]{plungerPosition.right, plungerPosition.centerY() - plungerSize / 8.0f,
+                plungerPosition.right, plungerPosition.centerY() + plungerSize / 8.0f,
+                plungerPosition.right - plungerSize / 3.0f, plungerPosition.centerY()};
     }
 
-    void setEnd(float endX, float endY) {
-        this.endX = endX;
-        this.endY = endY;
+    @Override
+    float[] getBounds() {
+        return bounds;
+    }
+
+    @Override
+    void offSetPosition(int dX, int dY) {
+        plungerPosition.offset(dX, dY);
+        for (int i = 0; i < bounds.length; i++) {
+            if (i % 2 == 0) bounds[i] += dX;
+            else bounds[i] += dY;
+        }
+        pivotX += dX;
+        pivotY += dY;
     }
 
     @Override
@@ -108,21 +121,10 @@ class Plunger extends CollisionObject {
         return plungerPosition;
     }
 
-    @Override
-    void offSetPosition(int dX, int dY) {
-        plungerPosition.offset(dX, dY);
-        for (int i = 0; i < points.length; i++) {
-            if (i % 2 == 0) points[i] += dX;
-            else points[i] += dY;
-        }
-        pivotX += dX;
-        pivotY += dY;
-    }
-
     private void rotate(float dTheta) {
         Matrix rotation = new Matrix();
         rotation.setRotate((float) Math.toDegrees(-dTheta), pivotX, pivotY);
-        rotation.mapPoints(points);
+        rotation.mapPoints(bounds);
     }
 
     @Override
@@ -141,18 +143,21 @@ class Plunger extends CollisionObject {
             if (tempAngle < snapToAngle) tempAngle += 2 * Math.PI;
             else if (tempAngle > snapToAngle + 2 * Math.PI) tempAngle -= 2 * Math.PI;
 
-            if (tempAngle > snapToAngle + Math.PI) changePivot(points[0], points[1]); //CCW
-            else changePivot(points[2], points[3]); //CW
+            if (tempAngle > snapToAngle + Math.PI) changePivot(bounds[0], bounds[1]); //CCW
+            else changePivot(bounds[2], bounds[3]); //CW
 
             velX = velY = 0;
         }
     }
 
-    @Override
-    void setPoints() {
-        points = new float[]{plungerPosition.right, plungerPosition.centerY() - plungerSize / 8.0f,
-                plungerPosition.right, plungerPosition.centerY() + plungerSize / 8.0f,
-                plungerPosition.right - plungerSize / 3.0f, plungerPosition.centerY()};
+    void fire() {
+        fired = true;
+        plungerSpeed = power * plungerMaxSpeed;
+    }
+
+    void setEnd(float endX, float endY) {
+        this.endX = endX;
+        this.endY = endY;
     }
 
     private void changePivot(float pivotX, float pivotY) {
@@ -169,13 +174,8 @@ class Plunger extends CollisionObject {
         }
     }
 
-    @Override
-    float[] getBounds() {
-        return points;
-    }
-
     boolean outOfPlay() {
-        return plungerPosition.top > Game.cameraFrame.bottom || plungerPosition.right < Game.cameraFrame.left;
+        return plungerPosition.top > Game.getCameraFrame().bottom || plungerPosition.right < Game.getCameraFrame().left;
     }
 
     boolean collisionsEnabled() {

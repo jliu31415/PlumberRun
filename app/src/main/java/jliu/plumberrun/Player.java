@@ -10,7 +10,7 @@ class Player extends CollisionObject {
     private final int spriteSize;   //spriteWidth = spriteHeight
     private Rect spriteFrame;
     private Rect playerPosition;
-    private float[] points; //bounding points
+    private float[] bounds; //bounding points
     private int frameCount = 0;
     private static final int playerSize = Tile.tileSize * 2;
     private double maxSpeedX = 10, maxSpeedY = 30;
@@ -18,14 +18,14 @@ class Player extends CollisionObject {
     private int freeFallCounter = 0;
     private boolean airborne = false, windUp = false, throwing = false;
     private boolean slowMotion = false;
-    private final double gravity = -1.5;
+    private double gravity;
 
     Player(Bitmap plumberSprites) {
         this.plumberSprites = plumberSprites;
         spriteSize = plumberSprites.getWidth() / 5;
         spriteFrame = new Rect(0, 0, spriteSize, spriteSize);
-        playerPosition = new Rect(-playerSize, 800, 0, 800 + playerSize);
-        setPoints();
+        playerPosition = new Rect(-2 * playerSize, 800, -playerSize, 800 + playerSize);
+        setBounds();
     }
 
     void draw(Canvas canvas) {
@@ -54,6 +54,9 @@ class Player extends CollisionObject {
         }
 
         if (freeFallCounter++ > 5) airborne = true; //cannot jump when in free fall
+
+        if (playerPosition.centerX() < 0) gravity = 0;
+        else gravity = -1.5;
     }
 
     void jump() {
@@ -70,31 +73,40 @@ class Player extends CollisionObject {
         frameCount = 10;
     }
 
+    boolean isWindingUp() {
+        return windUp;
+    }
+
     void throwPlunger() {
         windUp = false;
         slowMotion = false;
     }
 
     @Override
-    Rect getPosition() {
-        return playerPosition;
-    }
-
-    @Override
-    void setPoints() {
-        points = new float[]{playerPosition.left + playerSize / 4.0f, playerPosition.top,
+    void setBounds() {
+        bounds = new float[]{playerPosition.left + playerSize / 4.0f, playerPosition.top,
                 playerPosition.left + 3 * playerSize / 4.0f, playerPosition.top,
                 playerPosition.left + 3 * playerSize / 4.0f, playerPosition.top + 7 * playerSize / 8.0f,
                 playerPosition.left + playerSize / 4.0f, playerPosition.top + 7 * playerSize / 8.0f};
     }
 
     @Override
+    float[] getBounds() {
+        return bounds;
+    }
+
+    @Override
     void offSetPosition(int dX, int dY) {
         playerPosition.offset(dX, dY);
-        for (int i = 0; i < points.length; i++) {
-            if (i % 2 == 0) points[i] += dX;
-            else points[i] += dY;
+        for (int i = 0; i < bounds.length; i++) {
+            if (i % 2 == 0) bounds[i] += dX;
+            else bounds[i] += dY;
         }
+    }
+
+    @Override
+    Rect getPosition() {
+        return playerPosition;
     }
 
     @Override
@@ -105,10 +117,5 @@ class Player extends CollisionObject {
         }
         velX = maxSpeedX * -normal.y / Math.hypot(normal.x, normal.y);   //normal y is already inverted
         if (!airborne) velY = velX * -normal.x / Math.hypot(normal.x, normal.y);
-    }
-
-    @Override
-    float[] getBounds() {
-        return points;
     }
 }

@@ -7,7 +7,7 @@ import android.graphics.Rect;
 
 class Flag extends CollisionObject {
     private final Bitmap flagSprites;
-    private float[] points;
+    private float[] bounds;
     private Rect flagPosition, spriteFrame;
     private final int spriteWidth;
     private int frameCount = 0, frameIncrement = 1, pauseCount = 0;
@@ -17,10 +17,14 @@ class Flag extends CollisionObject {
         flagPosition = new Rect((int) posX, (int) posY, (int) posX + Tile.tileSize, (int) (posY + 1.5 * Tile.tileSize));
         spriteWidth = flagSprites.getWidth() / 5;
         spriteFrame = new Rect(0, 0, spriteWidth, flagSprites.getHeight());
-        setPoints();
+        setBounds();
     }
 
-    void updateFrame() {
+    void draw(Canvas canvas) {
+        canvas.drawBitmap(flagSprites, spriteFrame, Game.scaleRect(flagPosition), null);
+    }
+
+    void update() {
         if (pauseCount++ == 1) {    //update every other frame
             pauseCount = 0;
             frameCount += frameIncrement;
@@ -29,29 +33,25 @@ class Flag extends CollisionObject {
         spriteFrame.offsetTo(frameCount * spriteWidth, 0);
     }
 
-    void draw(Canvas canvas) {
-        canvas.drawBitmap(flagSprites, spriteFrame, Game.scaleRect(flagPosition), null);
-    }
-
     @Override
-    void setPoints() {
-        points = new float[]{flagPosition.left, flagPosition.top, flagPosition.right, flagPosition.top,
+    void setBounds() {
+        bounds = new float[]{flagPosition.left, flagPosition.top, flagPosition.right, flagPosition.top,
                 flagPosition.right, flagPosition.bottom, flagPosition.left, flagPosition.bottom};
     }
 
     @Override
     float[] getBounds() {
-        return points;
-    }
-
-    @Override
-    Rect getPosition() {
-        return flagPosition;
+        return bounds;
     }
 
     @Override
     void offSetPosition(int dX, int dY) {
 
+    }
+
+    @Override
+    Rect getPosition() {
+        return flagPosition;
     }
 
     @Override

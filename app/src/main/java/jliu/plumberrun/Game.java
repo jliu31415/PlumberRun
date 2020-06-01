@@ -16,45 +16,58 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Scanner;
 
+@SuppressLint("ViewConstructor")
 class Game extends SurfaceView implements SurfaceHolder.Callback {
     private static final int canvasX = 1794, canvasY = 1080;    //landscape reference
     private static double canvasScaleX = 1, canvasScaleY = 1;
-    static Rect cameraFrame;
+    private static Rect cameraFrame;
     private int totalOffsetX;   //camera frame offset
-    private Bitmap plunger_sprite;
-    private final ArrayList<ArrayList<Integer[]>> allLevels;
+    private final ArrayList<Integer[]> level;
     private final LevelCreator levelCreator;
     private final Player player;
     private final GameLoop gameLoop;
-    public ArrayList<Plunger> plungers;
-    private boolean aiming = false;   //true if user swipes to shoot plunger
+    private final Bitmap plunger_sprite;
+    private ArrayList<Plunger> plungers;
+    private Rect jumpButton;
 
-    Game(Context context) {
+    Game(Context context, int levelID) {
         super(context);
         setFocusable(true);
         SurfaceHolder surfaceHolder = getHolder();
         surfaceHolder.addCallback(this);
 
+        Bitmap plumber_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.plumber_sprites);
         Bitmap tile_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.tile_sprites);
         Bitmap flag_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.flag_sprites);
-        Bitmap plumber_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.plumber_sprites);
         plunger_sprite = BitmapFactory.decodeResource(getResources(), R.drawable.plunger_sprite);
 
-        allLevels = parseAllLevels();
-        levelCreator = new LevelCreator(allLevels, tile_sprites, flag_sprites);
+        level = parseLevel(levelID);
+        cameraFrame = new Rect(0, 0, canvasX, canvasY);
+        levelCreator = new LevelCreator(level, tile_sprites, flag_sprites);
         player = new Player(plumber_sprites);
-        gameLoop = new GameLoop(this, surfaceHolder, levelCreator);
+        gameLoop = new GameLoop(this, surfaceHolder);
         plungers = new ArrayList<>();
+        jumpButton = new Rect(canvasX / 2, canvasY / 2, canvasX, canvasY);
     }
 
-    private ArrayList<ArrayList<Integer[]>> parseAllLevels() {
-        ArrayList<ArrayList<Integer[]>> allLevels = new ArrayList<>();
-        InputStream is = this.getResources().openRawResource(R.raw.test_level);
+    private ArrayList<Integer[]> parseLevel(int levelID) {
+        InputStream is = new InputStream() {
+            @Override
+            public int read() {
+                return 0;
+            }
+        };
+
+        if (levelID == 0) {
+            is = this.getResources().openRawResource(R.raw.test_level);
+        }
+
         Scanner scan = new Scanner(is);
         ArrayList<Integer[]> level = new ArrayList<>();
         int numRows = 1 + canvasY / Tile.tileSize;
         int id = 0;
         boolean autoFill;
+
         while (scan.hasNext()) {
             if (!scan.hasNextInt()) {
                 if (scan.next().equals("*")) {
@@ -73,9 +86,9 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                 level.add(column);
             }
         }
-        allLevels.add(level);
+
         scan.close();
-        return allLevels;
+        return level;
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -83,37 +96,31 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     public boolean onTouchEvent(MotionEvent event) {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                if (!gameLoop.levelStarted())
-                    gameLoop.startLevel();
-                else if (event.getX() > Game.scaleX(canvasX * .5) && event.getY() > Game.scaleY(canvasY * .5))
+                if (Game.scaleRect(jumpButton).contains((int) event.getX(), (int) event.getY())) {
                     player.jump();
-                else if (totalOffsetX > 0) {
-                    aiming = true;
+                } else if (player.getPosition().left > 0) {
                     player.windUp();
                     plungers.add(0, new Plunger(plunger_sprite, player, event.getX(), event.getY()));
                 }
                 break;
 
             case MotionEvent.ACTION_MOVE:
-                if (aiming)
+                if (player.isWindingUp())
                     plungers.get(0).setEnd(event.getX(), event.getY());
                 break;
 
             case MotionEvent.ACTION_UP:
-                if (aiming) {
+                if (player.isWindingUp()) {
                     player.throwPlunger();
                     plungers.get(0).fire();
-                    aiming = false;
                 }
                 break;
         }
-
         return true;
     }
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        cameraFrame = new Rect(0, 0, canvasX, canvasY);
         gameLoop.start();
     }
 
@@ -164,7 +171,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
         int cameraOffsetX = -300;
         totalOffsetX = player.getPosition().left + cameraOffsetX;
-        totalOffsetX = Math.min(totalOffsetX, allLevels.get(levelCreator.getCurrentLevel()).size() * Tile.tileSize - canvasX);
+        totalOffsetX = Math.min(totalOffsetX, level.size() * Tile.tileSize - canvasX);
         totalOffsetX = Math.max(totalOffsetX, 0);
         cameraFrame.offsetTo(totalOffsetX, 0);
     }
@@ -186,5 +193,8 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     static Rect getCanvasDimensions() {
         return new Rect(0, 0, canvasX, canvasY);
     }
-    
+
+    static Rect getCameraFrame() {
+        return cameraFrame;
+    }
 }
