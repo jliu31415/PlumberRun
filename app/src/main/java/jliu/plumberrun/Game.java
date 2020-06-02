@@ -99,8 +99,10 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                 if (Game.scaleRect(jumpButton).contains((int) event.getX(), (int) event.getY())) {
                     player.jump();
                 } else if (player.getPosition().left > 0) {
-                    player.windUp();
-                    plungers.add(0, new Plunger(plunger_sprite, player, event.getX(), event.getY()));
+                    if (plungers.size() == 0 || plungers.get(0).hasFired()) {
+                        player.windUp();
+                        plungers.add(0, new Plunger(plunger_sprite, player, event.getX(), event.getY()));
+                    }
                 }
                 break;
 
@@ -110,7 +112,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                 break;
 
             case MotionEvent.ACTION_UP:
-                if (player.isWindingUp()) {
+                if (player.isWindingUp() && plungers.get(0).canFire()) {
                     player.throwPlunger();
                     plungers.get(0).fire();
                 }

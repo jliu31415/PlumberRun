@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 
@@ -15,15 +16,15 @@ class Plunger extends CollisionObject {
     private float endX, endY;
     private double velX, velY;
     private Rect plungerPosition;
-    private final int plungerOffsetX = -80;   //offset plunger to player's hand
+    private Point plungerOffset;   //offset plunger to player's hand
     private static final int plungerSize = Tile.tileSize * 2;
     private final double plungerMaxSpeed = 35;
     private double plungerSpeed = 0;   //current plunger speed
-    private float aim, prevAngle, angle, snapToAngle; //angle follows parabolic arc when fired; [-PI/2, 3PI/2]
+    private float aim, prevAngle, angle, snapToAngle, constrain; //angle follows parabolic arc when fired; [-PI/2, 3PI/2]
     private double power = 1;   //pull back more for more power; [.5, 1]
     private final double gravity = -.5;
     private int airTime = 0;
-    private boolean fired = false, sticking = false, collided = false;
+    private boolean canFire = true, fired = false, sticking = false, collided = false;
     private float pivotX, pivotY;  //image rotation pivot coordinates
     private float[] bounds;  //bounding points
     private final Paint white;
@@ -33,8 +34,10 @@ class Plunger extends CollisionObject {
         this.player = player;
         startX = endX = touchX;
         startY = endY = touchY;
-        plungerPosition = new Rect(player.getPosition().left + plungerOffsetX, player.getPosition().top,
-                player.getPosition().left + plungerOffsetX + plungerSize, player.getPosition().top + plungerSize);
+        plungerOffset = new Point(-55, -35);
+        plungerPosition = new Rect(player.getPosition().left, player.getPosition().top,
+                player.getPosition().left + plungerSize, player.getPosition().top + plungerSize);
+        plungerPosition.offset(plungerOffset.x, plungerOffset.y);
         pivotX = plungerPosition.centerX();
         pivotY = plungerPosition.centerY();
         setBounds();
@@ -63,14 +66,21 @@ class Plunger extends CollisionObject {
 
         prevAngle = angle;
         if (!fired) {
-            velX = player.getPosition().left - plungerPosition.left + plungerOffsetX;
-            velY = plungerPosition.top - player.getPosition().top;
+            velX = (player.getPosition().left + plungerOffset.x) - plungerPosition.left;
+            velY = plungerPosition.top - (player.getPosition().top + plungerOffset.y);
 
             if (startX == endX) aim = 0;
             else aim = (float) Math.atan((endY - startY) / (startX - endX));
             aim = (float) Math.min(aim, Math.PI / 2.1);
             aim = (float) Math.max(aim, -Math.PI / 2.1);
-            if (startX < endX) aim += Math.PI;
+            if (startX < endX) {
+                aim += Math.PI;
+                player.flip(true);
+                plungerOffset.x = Math.abs(plungerOffset.x);
+            } else {
+                player.flip(false);
+                plungerOffset.x = -Math.abs(plungerOffset.x);
+            }
             angle = aim;
 
             power = Math.hypot(startX - endX, startY - endY) / 200;
@@ -91,6 +101,8 @@ class Plunger extends CollisionObject {
                 if (velX < 0) angle += Math.PI;
             }
         }
+
+        canFire = true;
     }
 
     @Override
@@ -129,30 +141,38 @@ class Plunger extends CollisionObject {
 
     @Override
     void collide(PointF normal) {
-        if (collided) snapToAngle = angle;  //secondary collision
-        else {
-            sticking = true;
+        if (fired) {
+            offSetPosition((int) normal.x, (int) -normal.y);
+            if (collided)
+                snapToAngle = angle;  //secondary collision
+            else {
+                sticking = true;
 
-            if (normal.x == 0 && normal.y < 0) snapToAngle = (float) (-Math.PI / 2);
-            else if (normal.x == 0 && normal.y > 0) snapToAngle = (float) (Math.PI / 2);
-            else this.snapToAngle = (float) -Math.atan(normal.y / normal.x);
+                if (normal.x == 0 && normal.y > 0) snapToAngle = (float) (-Math.PI / 2);
+                else if (normal.x == 0 && normal.y < 0) snapToAngle = (float) (Math.PI / 2);
+                else this.snapToAngle = (float) Math.atan(normal.y / normal.x);
 
-            if (normal.x > 0) snapToAngle += Math.PI;
+                if (normal.x > 0) snapToAngle += Math.PI;
 
-            float tempAngle = angle;
-            if (tempAngle < snapToAngle) tempAngle += 2 * Math.PI;
-            else if (tempAngle > snapToAngle + 2 * Math.PI) tempAngle -= 2 * Math.PI;
+                float tempAngle = angle;
+                if (tempAngle < snapToAngle) tempAngle += 2 * Math.PI;
+                else if (tempAngle > snapToAngle + 2 * Math.PI) tempAngle -= 2 * Math.PI;
 
-            if (tempAngle > snapToAngle + Math.PI) changePivot(bounds[0], bounds[1]); //CCW
-            else changePivot(bounds[2], bounds[3]); //CW
+                if (tempAngle > snapToAngle + Math.PI) changePivot(bounds[0], bounds[1]); //CCW
+                else changePivot(bounds[2], bounds[3]); //CW
 
-            velX = velY = 0;
+                velX = velY = 0;
+            }
+        } else {
+            canFire = false;
         }
     }
 
     void fire() {
-        fired = true;
-        plungerSpeed = power * plungerMaxSpeed;
+        if (canFire) {
+            fired = true;
+            plungerSpeed = power * plungerMaxSpeed;
+        }
     }
 
     void setEnd(float endX, float endY) {
@@ -179,7 +199,7 @@ class Plunger extends CollisionObject {
     }
 
     boolean collisionsEnabled() {
-        return fired && !(sticking && angle == snapToAngle);
+        return !(sticking && angle == snapToAngle);
     }
 
     boolean isSticking() {
@@ -188,5 +208,13 @@ class Plunger extends CollisionObject {
 
     void hasCollided() {
         collided = true;
+    }
+
+    boolean hasFired() {
+        return fired;
+    }
+
+    boolean canFire() {
+        return canFire;
     }
 }

@@ -96,8 +96,8 @@ class LevelCreator {
             if (offset1.y != 0)
                 offset1.y = (int) (Math.ceil(Math.abs(offset1.y))) * (offset1.y / Math.abs(offset1.y));
 
+            offset1.y *= -1;    //invert y component for consistency
             collisionObject1.collide(offset1);
-            collisionObject1.offSetPosition((int) offset1.x, (int) offset1.y);  //offset.y is not inverted
             return true;
         }
         return false;

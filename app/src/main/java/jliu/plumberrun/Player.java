@@ -2,22 +2,24 @@ package jliu.plumberrun;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Matrix;
 import android.graphics.PointF;
 import android.graphics.Rect;
+import android.util.Log;
 
 class Player extends CollisionObject {
     private final Bitmap plumberSprites;
+    private Bitmap mirroredImage;
     private final int spriteSize;   //spriteWidth = spriteHeight
     private Rect spriteFrame;
     private Rect playerPosition;
     private float[] bounds; //bounding points
-    private int frameCount = 0;
+    private int frameCount = 0, pauseCount = 0;
     private static final int playerSize = Tile.tileSize * 2;
     private double maxSpeedX = 10, maxSpeedY = 30;
     private double velX = maxSpeedX, velY = 0;
     private int freeFallCounter = 0;
-    private boolean airborne = false, windUp = false, throwing = false;
-    private boolean slowMotion = false;
+    private boolean airborne = false, windUp = false, throwing = false, slowMotion = false, flipped = false;
     private double gravity;
 
     Player(Bitmap plumberSprites) {
@@ -29,16 +31,25 @@ class Player extends CollisionObject {
     }
 
     void draw(Canvas canvas) {
-        canvas.drawBitmap(plumberSprites, spriteFrame, Game.scaleRect(playerPosition), null);
+        if (flipped && mirroredImage != null)
+            canvas.drawBitmap(mirroredImage, null, Game.scaleRect(playerPosition), null);
+        else {
+            canvas.drawBitmap(plumberSprites, spriteFrame, Game.scaleRect(playerPosition), null);
+        }
     }
 
     void update() {
+        Log.d("debug", velX + "");
         offSetPosition((int) velX, (int) -velY);    //offset after checking collisions (before next update)
 
         if (!throwing) {
             frameCount = frameCount % 10;
         } else {
             if (frameCount == 16 && windUp) frameCount--;
+            else if (!windUp && pauseCount++ == 1) {   //slow down release animation
+                frameCount--;
+                pauseCount = 0;
+            }
             if (frameCount == 19) throwing = false;
         }
 
@@ -57,6 +68,16 @@ class Player extends CollisionObject {
 
         if (playerPosition.centerX() < 0) gravity = 0;
         else gravity = -1.5;
+
+        if (velX < 0) flip(true);
+        else if (!throwing) flip(false);
+
+        if (flipped) {
+            Matrix reflection = new Matrix();
+            reflection.setScale(-1, 1, spriteSize / 2.0f, spriteSize / 2.0f);
+            mirroredImage = Bitmap.createBitmap(plumberSprites, spriteFrame.left, spriteFrame.top,
+                    spriteSize, spriteSize, reflection, true);
+        }
     }
 
     void jump() {
@@ -111,11 +132,22 @@ class Player extends CollisionObject {
 
     @Override
     void collide(PointF normal) {
-        if (normal.y < 0) {
+        offSetPosition((int) normal.x, (int) -normal.y);
+
+        if (normal.y > 0) {
             airborne = false;
             freeFallCounter = 0;
         }
-        velX = maxSpeedX * -normal.y / Math.hypot(normal.x, normal.y);   //normal y is already inverted
-        if (!airborne) velY = velX * -normal.x / Math.hypot(normal.x, normal.y);
+        
+        if (!slowMotion) {
+            velX = maxSpeedX * normal.y / Math.hypot(normal.x, normal.y);
+            if (!airborne) velY = velX * -normal.x / Math.hypot(normal.x, normal.y);
+        }
+    }
+
+    void flip(boolean flip) {
+        if (!flipped == flip) {
+            flipped = !flipped;
+        }
     }
 }
