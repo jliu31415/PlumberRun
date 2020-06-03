@@ -14,7 +14,7 @@ class Flag extends CollisionObject {
 
     Flag(Bitmap flagSprites, double posX, double posY) {
         this.flagSprites = flagSprites;
-        flagPosition = new Rect((int) posX, (int) posY, (int) posX + Tile.tileSize, (int) (posY + 1.5 * Tile.tileSize));
+        flagPosition = new Rect((int) posX, (int) posY, (int) posX + 2 * Tile.tileSize, (int) (posY + 3 * Tile.tileSize));
         spriteWidth = flagSprites.getWidth() / 5;
         spriteFrame = new Rect(0, 0, spriteWidth, flagSprites.getHeight());
         setBounds();

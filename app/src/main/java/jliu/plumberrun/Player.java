@@ -5,11 +5,10 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.PointF;
 import android.graphics.Rect;
-import android.util.Log;
 
 class Player extends CollisionObject {
     private final Bitmap plumberSprites;
-    private Bitmap mirroredImage;
+    private Bitmap mirroredSprites;
     private final int spriteSize;   //spriteWidth = spriteHeight
     private Rect spriteFrame;
     private Rect playerPosition;
@@ -24,6 +23,10 @@ class Player extends CollisionObject {
 
     Player(Bitmap plumberSprites) {
         this.plumberSprites = plumberSprites;
+        Matrix reflection = new Matrix();
+        reflection.setScale(-1, 1, plumberSprites.getWidth() / 2.0f, plumberSprites.getHeight() / 2.0f);
+        mirroredSprites = Bitmap.createBitmap(plumberSprites, 0, 0, plumberSprites.getWidth(), plumberSprites.getHeight(),
+                reflection, true);
         spriteSize = plumberSprites.getWidth() / 5;
         spriteFrame = new Rect(0, 0, spriteSize, spriteSize);
         playerPosition = new Rect(-2 * playerSize, 800, -playerSize, 800 + playerSize);
@@ -31,17 +34,14 @@ class Player extends CollisionObject {
     }
 
     void draw(Canvas canvas) {
-        if (flipped && mirroredImage != null)
-            canvas.drawBitmap(mirroredImage, null, Game.scaleRect(playerPosition), null);
+        if (flipped)
+            canvas.drawBitmap(mirroredSprites, spriteFrame, Game.scaleRect(playerPosition), null);
         else {
             canvas.drawBitmap(plumberSprites, spriteFrame, Game.scaleRect(playerPosition), null);
         }
     }
 
     void update() {
-        Log.d("debug", velX + "");
-        offSetPosition((int) velX, (int) -velY);    //offset after checking collisions (before next update)
-
         if (!throwing) {
             frameCount = frameCount % 10;
         } else {
@@ -53,16 +53,15 @@ class Player extends CollisionObject {
             if (frameCount == 19) throwing = false;
         }
 
-        spriteFrame.offsetTo(spriteSize * (frameCount % 5), spriteSize * (frameCount / 5));
+        if (flipped) {
+            spriteFrame.offsetTo(spriteSize * (4 - frameCount % 5), spriteSize * (frameCount / 5));
+        } else {
+            spriteFrame.offsetTo(spriteSize * (frameCount % 5), spriteSize * (frameCount / 5));
+        }
         frameCount++;
 
-        if (!slowMotion) {
-            if (velX < maxSpeedX) velX++;
-            velY = Math.max(velY + gravity, -maxSpeedY);
-        } else {
-            velX = 1;
-            velY = Math.min(0, velY - .1);
-        }
+        if (velX < maxSpeedX) velX++;
+        velY = Math.max(velY + gravity, -maxSpeedY);
 
         if (freeFallCounter++ > 5) airborne = true; //cannot jump when in free fall
 
@@ -72,12 +71,10 @@ class Player extends CollisionObject {
         if (velX < 0) flip(true);
         else if (!throwing) flip(false);
 
-        if (flipped) {
-            Matrix reflection = new Matrix();
-            reflection.setScale(-1, 1, spriteSize / 2.0f, spriteSize / 2.0f);
-            mirroredImage = Bitmap.createBitmap(plumberSprites, spriteFrame.left, spriteFrame.top,
-                    spriteSize, spriteSize, reflection, true);
-        }
+        if (!slowMotion)
+            offSetPosition((int) velX, (int) -velY);
+        else
+            offSetPosition((int) (velX / maxSpeedX), (int) (-velY / maxSpeedX));   //normalize with maxSpeedX
     }
 
     void jump() {
@@ -105,10 +102,10 @@ class Player extends CollisionObject {
 
     @Override
     void setBounds() {
-        bounds = new float[]{playerPosition.left + playerSize / 4.0f, playerPosition.top,
-                playerPosition.left + 3 * playerSize / 4.0f, playerPosition.top,
-                playerPosition.left + 3 * playerSize / 4.0f, playerPosition.top + 7 * playerSize / 8.0f,
-                playerPosition.left + playerSize / 4.0f, playerPosition.top + 7 * playerSize / 8.0f};
+        bounds = new float[]{playerPosition.left + playerSize * .25f, playerPosition.top,
+                playerPosition.left + playerSize * .75f, playerPosition.top,
+                playerPosition.left + playerSize * .75f, playerPosition.top + playerSize * .875f,
+                playerPosition.left + playerSize * .25f, playerPosition.top + playerSize * .875f};
     }
 
     @Override
@@ -138,13 +135,12 @@ class Player extends CollisionObject {
             airborne = false;
             freeFallCounter = 0;
         }
-        
-        if (!slowMotion) {
-            velX = maxSpeedX * normal.y / Math.hypot(normal.x, normal.y);
-            if (!airborne) velY = velX * -normal.x / Math.hypot(normal.x, normal.y);
-        }
+
+        velX = maxSpeedX * normal.y / Math.hypot(normal.x, normal.y);
+        if (!airborne) velY = velX * -normal.x / Math.hypot(normal.x, normal.y);
     }
 
+    //flip does not change bounds array; bounds is symmetric
     void flip(boolean flip) {
         if (!flipped == flip) {
             flipped = !flipped;

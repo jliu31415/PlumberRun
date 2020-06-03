@@ -4,14 +4,16 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 
 import java.util.ArrayList;
 
 class LevelCreator {
+    private final Game game;
     private ArrayList<Integer[]> level;
-    private final Bitmap tileSprites, flagSprites;
+    private final Bitmap tileSprites, flagSprites, toilet_sprites;
     private Flag flag;
     private Rect spriteFrame;
     private Rect tilePosition;
@@ -19,14 +21,18 @@ class LevelCreator {
     private static final int tileSize = Tile.tileSize;
     private boolean levelComplete;
     private ArrayList<FireworkParticle> fireworks;
+    private ArrayList<Point> enemiesInstantiated;    //keeps track of instantiated enemies
 
-    LevelCreator(ArrayList<Integer[]> level, Bitmap tileSprites, Bitmap flagSprites) {
+    LevelCreator(Game game, ArrayList<Integer[]> level, Bitmap tileSprites, Bitmap flagSprites, Bitmap toilet_sprites) {
+        this.game = game;
         this.level = level;
         this.tileSprites = tileSprites;
         this.flagSprites = flagSprites;
+        this.toilet_sprites = toilet_sprites;
         spriteSize = tileSprites.getWidth() / 5;
         spriteFrame = new Rect(0, 0, spriteSize, spriteSize);
         tilePosition = new Rect(0, 0, tileSize, tileSize);
+        enemiesInstantiated = new ArrayList<>();
     }
 
     void draw(Canvas canvas) {
@@ -36,16 +42,27 @@ class LevelCreator {
             if (col == level.size()) break;
             for (int row = 0; row < level.get(col).length; row++) {
                 int id = level.get(col)[row];
-                if (Tile.isTile(id)) {
+                if (0 < id && id < 16) {
                     framePosX = spriteSize * (--id % 5);
                     framePosY = spriteSize * (id / 5);
                     spriteFrame.offsetTo(framePosX, framePosY);
                     tilePosition.offsetTo(col * tileSize, row * tileSize);
                     canvas.drawBitmap(tileSprites, spriteFrame, Game.scaleRect(tilePosition), null);
-                }
-                if (id == 99) {
+                } else if (id == 50) {
+                    boolean create = true;
+                    for (Point p : enemiesInstantiated) {
+                        if (p.equals(col, row)) {
+                            create = false;
+                            break;
+                        }
+                    }
+                    if (create) {
+                        game.addEnemy(new Enemy(toilet_sprites, col * tileSize, (row - 1) * tileSize));
+                        enemiesInstantiated.add(new Point(col, row));
+                    }
+                } else if (id == 99) {
                     if (flag == null)
-                        flag = new Flag(flagSprites, col * tileSize, (row - .5) * tileSize);
+                        flag = new Flag(flagSprites, col * tileSize, (row - 2) * tileSize);
                     flag.draw(canvas);
                 }
             }
@@ -161,7 +178,7 @@ class LevelCreator {
         do {
             try {
                 int tileID = level.get(coordinateX / tileSize)[coordinateY / tileSize];
-                if (Tile.isTile(tileID))
+                if (0 < tileID && tileID < 16)
                     surroundingTiles.add(new Tile(tileID, coordinateX, coordinateY));
             } catch (IndexOutOfBoundsException e) {
                 e.printStackTrace();
@@ -179,6 +196,24 @@ class LevelCreator {
     void checkLevelComplete(Player player) {
         if (flag != null && updateCollisions(player, flag)) {
             levelComplete = true;
+        }
+    }
+
+    void setEnemyMovement(Enemy enemy) {
+        try {
+            int coordinateX = (int) (enemy.getPosition().centerX() + Math.copySign(tileSize, enemy.getVelX()));
+            int coordinateY = enemy.getPosition().top;
+
+            int tileID = level.get(coordinateX / tileSize)[coordinateY / tileSize];
+            if (0 < tileID && tileID < 16) enemy.flip(enemy.getVelX() < 0);
+
+            tileID = level.get(coordinateX / tileSize)[coordinateY / tileSize + 1];
+            if (0 < tileID && tileID < 16) enemy.flip(enemy.getVelX() < 0);
+
+            tileID = level.get(coordinateX / tileSize)[coordinateY / tileSize + 2];
+            if (tileID == 0) enemy.flip(enemy.getVelX() < 0);
+        } catch (IndexOutOfBoundsException e) {
+            e.printStackTrace();
         }
     }
 

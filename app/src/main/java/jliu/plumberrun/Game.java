@@ -28,6 +28,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     private final GameLoop gameLoop;
     private final Bitmap plunger_sprite;
     private ArrayList<Plunger> plungers;
+    private ArrayList<Enemy> enemies;
     private Rect jumpButton;
 
     Game(Context context, int levelID) {
@@ -39,14 +40,16 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         Bitmap plumber_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.plumber_sprites);
         Bitmap tile_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.tile_sprites);
         Bitmap flag_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.flag_sprites);
+        Bitmap toilet_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.toilet_sprites);
         plunger_sprite = BitmapFactory.decodeResource(getResources(), R.drawable.plunger_sprite);
 
         level = parseLevel(levelID);
         cameraFrame = new Rect(0, 0, canvasX, canvasY);
-        levelCreator = new LevelCreator(level, tile_sprites, flag_sprites);
+        levelCreator = new LevelCreator(this, level, tile_sprites, flag_sprites, toilet_sprites);
         player = new Player(plumber_sprites);
         gameLoop = new GameLoop(this, surfaceHolder);
         plungers = new ArrayList<>();
+        enemies = new ArrayList<>();
         jumpButton = new Rect(canvasX / 2, canvasY / 2, canvasX, canvasY);
     }
 
@@ -142,8 +145,12 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         canvas.drawColor(ContextCompat.getColor(getContext(), R.color.primary_light));
         levelCreator.draw(canvas);
         player.draw(canvas);
+        //do not use for each loop (concurrent modification exception)
         for (int i = 0; i < plungers.size(); i++) {
             plungers.get(i).draw(canvas);
+        }
+        for (int i = 0; i < enemies.size(); i++) {
+            enemies.get(i).draw(canvas);
         }
 
         canvas.translate(totalOffsetX, 0);
@@ -171,11 +178,25 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
             }
         }
 
+        for (int i = 0; i < enemies.size(); i++) {
+            if (levelCreator.updateCollisions(player, enemies.get(i))) gameOver();
+            enemies.get(i).update();
+            levelCreator.setEnemyMovement(enemies.get(i));
+        }
+
         int cameraOffsetX = -300;
         totalOffsetX = player.getPosition().left + cameraOffsetX;
         totalOffsetX = Math.min(totalOffsetX, level.size() * Tile.tileSize - canvasX);
         totalOffsetX = Math.max(totalOffsetX, 0);
         cameraFrame.offsetTo(totalOffsetX, 0);
+    }
+
+    private void gameOver() {
+
+    }
+
+    public void addEnemy(Enemy enemy) {
+        enemies.add(enemy);
     }
 
     //scale sprite positions for other canvas dimensions unequal to 1080 x 1794

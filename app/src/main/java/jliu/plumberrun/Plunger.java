@@ -61,9 +61,6 @@ class Plunger extends CollisionObject {
     }
 
     void update() {
-        offSetPosition((int) velX, (int) -velY);
-        rotate(angle - prevAngle);
-
         prevAngle = angle;
         if (!fired) {
             velX = (player.getPosition().left + plungerOffset.x) - plungerPosition.left;
@@ -103,13 +100,16 @@ class Plunger extends CollisionObject {
         }
 
         canFire = true;
+
+        offSetPosition((int) velX, (int) -velY);
+        rotate(angle - prevAngle);
     }
 
     @Override
     void setBounds() {
-        bounds = new float[]{plungerPosition.right, plungerPosition.centerY() - plungerSize / 8.0f,
-                plungerPosition.right, plungerPosition.centerY() + plungerSize / 8.0f,
-                plungerPosition.right - plungerSize / 3.0f, plungerPosition.centerY()};
+        bounds = new float[]{plungerPosition.right, plungerPosition.centerY() - plungerSize * .125f,
+                plungerPosition.right, plungerPosition.centerY() + plungerSize * .125f,
+                plungerPosition.right - plungerSize * .333f, plungerPosition.centerY()};
     }
 
     @Override

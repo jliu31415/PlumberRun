@@ -1,7 +1,5 @@
 low ground
 01 00 -1 * 5
-flag
-01 99 00 -1
 slope
 06 08 00 -1
 02 06 08 00 -1
@@ -13,10 +11,10 @@ slope
 07 09 00 -1
 low ground
 01 00 -1 * 3
-raised ground
+raised ground with enemy
 02 03 00 -1
 02 01 00 -1 * 3
-02 04 00 -1
+02 04 50 00 -1
 cliff
 00 -1 * 3
 floating ledge
@@ -25,3 +23,7 @@ floating ledge
 00 00 00 11 00 -1
 cliff
 00 -1 * 3
+flag
+02 01 00 -1
+02 01 99 00 -1
+02 01 00 -1
