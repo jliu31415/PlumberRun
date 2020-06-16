@@ -5,6 +5,8 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.Rect;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
@@ -30,6 +32,11 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     private ArrayList<Plunger> plungers;
     private ArrayList<Enemy> enemies;
     private Rect jumpButton;
+    private Rect slowMotionBar;
+    private Paint white;
+    private long startTime = 0;
+    private double slowDuration = 1500;
+    private boolean slowMotion = false;
 
     Game(Context context, int levelID) {
         super(context);
@@ -51,6 +58,10 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         plungers = new ArrayList<>();
         enemies = new ArrayList<>();
         jumpButton = new Rect(canvasX / 2, canvasY / 2, canvasX, canvasY);
+        slowMotionBar = new Rect(100, 100, 600, 150);
+
+        white = new Paint();
+        white.setColor(Color.WHITE);
     }
 
     private ArrayList<Integer[]> parseLevel(int levelID) {
@@ -105,6 +116,8 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                     if (plungers.size() == 0 || plungers.get(0).hasFired()) {
                         player.windUp();
                         plungers.add(0, new Plunger(plunger_sprite, player, event.getX(), event.getY()));
+                        startTime = System.currentTimeMillis();
+                        slowMotion = true;
                     }
                 }
                 break;
@@ -118,6 +131,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                 if (player.isWindingUp() && plungers.get(0).canFire()) {
                     player.throwPlunger();
                     plungers.get(0).fire();
+                    slowMotion = false;
                 }
                 break;
         }
@@ -140,7 +154,6 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     @Override
     public void draw(Canvas canvas) {
         canvas.translate(-totalOffsetX, 0);
-
         super.draw(canvas);
         canvas.drawColor(ContextCompat.getColor(getContext(), R.color.primary_light));
         levelCreator.draw(canvas);
@@ -152,8 +165,15 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         for (int i = 0; i < enemies.size(); i++) {
             enemies.get(i).draw(canvas);
         }
-
         canvas.translate(totalOffsetX, 0);
+
+        if (slowMotion) {
+            canvas.translate(slowMotionBar.left, slowMotionBar.top);
+            double ratio = 1 - (System.currentTimeMillis() - startTime) / slowDuration;
+            Rect bar = new Rect(0, 0, (int) (slowMotionBar.width() * ratio), slowMotionBar.height());
+            canvas.drawRect(scaleRect(bar), white);
+            canvas.translate(-slowMotionBar.left, -slowMotionBar.top);
+        }
     }
 
     void update() {
@@ -189,6 +209,10 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         totalOffsetX = Math.min(totalOffsetX, level.size() * Tile.tileSize - canvasX);
         totalOffsetX = Math.max(totalOffsetX, 0);
         cameraFrame.offsetTo(totalOffsetX, 0);
+
+        //automatically release plunger
+        if (player.isWindingUp() && System.currentTimeMillis() - startTime > slowDuration)
+            onTouchEvent(MotionEvent.obtain(1, 1, MotionEvent.ACTION_UP, 1, 1, 0));
     }
 
     private void gameOver() {
