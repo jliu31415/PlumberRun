@@ -182,7 +182,8 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         for (Tile tile : levelCreator.getSurroundingTiles(player.getBounds())) {
             levelCreator.updateCollisions(player, tile);
         }
-        levelCreator.checkLevelComplete(player);
+        if (levelCreator.checkLevelComplete(player)) gameOver(true);
+        if (levelCreator.checkPlayerDeath(player, enemies)) gameOver(false);
 
         for (int i = 0; i < plungers.size(); i++) {
             if (plungers.get(i).outOfPlay())
@@ -199,7 +200,6 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         }
 
         for (int i = 0; i < enemies.size(); i++) {
-            if (levelCreator.updateCollisions(player, enemies.get(i))) gameOver();
             enemies.get(i).update();
             levelCreator.setEnemyMovement(enemies.get(i));
         }
@@ -212,10 +212,10 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
         //automatically release plunger
         if (player.isWindingUp() && System.currentTimeMillis() - startTime > slowDuration)
-            onTouchEvent(MotionEvent.obtain(1, 1, MotionEvent.ACTION_UP, 1, 1, 0));
+            onTouchEvent(MotionEvent.obtain(10, 10, MotionEvent.ACTION_UP, 0, 0, 0));
     }
 
-    private void gameOver() {
+    private void gameOver(boolean levelComplete) {
 
     }
 

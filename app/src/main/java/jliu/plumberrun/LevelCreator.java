@@ -193,10 +193,11 @@ class LevelCreator {
         return surroundingTiles;
     }
 
-    void checkLevelComplete(Player player) {
+    boolean checkLevelComplete(Player player) {
         if (flag != null && updateCollisions(player, flag)) {
             levelComplete = true;
         }
+        return levelComplete;
     }
 
     void setEnemyMovement(Enemy enemy) {
@@ -215,6 +216,22 @@ class LevelCreator {
         } catch (IndexOutOfBoundsException e) {
             e.printStackTrace();
         }
+    }
+
+    boolean checkPlayerDeath(Player player, ArrayList<Enemy> enemies) {
+        if (Game.getCameraFrame().left > 0 && !Rect.intersects(Game.getCameraFrame(), player.getPosition())) {
+            player.initialize();    //reset when player falls out of frame
+            return true;
+        } else {
+            for (Enemy e : enemies) {
+                if (updateCollisions(player, e)) {
+                    player.initialize();
+                    return true;
+                }
+
+            }
+        }
+        return false;
     }
 
     static class FireworkParticle {

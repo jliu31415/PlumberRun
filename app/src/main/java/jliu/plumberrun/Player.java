@@ -16,9 +16,10 @@ class Player extends CollisionObject {
     private int frameCount = 0, pauseCount = 0;
     private static final int playerSize = Tile.tileSize * 2;
     private double maxSpeedX = 10, maxSpeedY = 30;
-    private double velX = maxSpeedX, velY = 0;
+    private double velX, velY;
     private int freeFallCounter = 0;
-    private boolean airborne = false, windUp = false, throwing = false, slowMotion = false, flipped = false;
+    private boolean initialized = false;
+    private boolean airborne = true, windUp = false, throwing = false, slowMotion = false, flipped = false;
     private double gravity;
 
     Player(Bitmap plumberSprites) {
@@ -29,8 +30,7 @@ class Player extends CollisionObject {
                 reflection, true);
         spriteSize = plumberSprites.getWidth() / 5;
         spriteFrame = new Rect(0, 0, spriteSize, spriteSize);
-        playerPosition = new Rect(-2 * playerSize, 800, -playerSize, 800 + playerSize);
-        setBounds();
+        initialize();
     }
 
     void draw(Canvas canvas) {
@@ -42,39 +42,41 @@ class Player extends CollisionObject {
     }
 
     void update() {
-        if (!throwing) {
-            frameCount = frameCount % 10;
-        } else {
-            if (frameCount == 16 && windUp) frameCount--;
-            else if (!windUp && pauseCount++ == 1) {   //slow down release animation
-                frameCount--;
-                pauseCount = 0;
+        if (initialized) {
+            if (!throwing) {
+                frameCount = frameCount % 10;
+            } else {
+                if (frameCount == 16 && windUp) frameCount--;
+                else if (!windUp && pauseCount++ == 1) {   //slow down release animation
+                    frameCount--;
+                    pauseCount = 0;
+                }
+                if (frameCount == 19) throwing = false;
             }
-            if (frameCount == 19) throwing = false;
+
+            if (flipped) {
+                spriteFrame.offsetTo(spriteSize * (4 - frameCount % 5), spriteSize * (frameCount / 5));
+            } else {
+                spriteFrame.offsetTo(spriteSize * (frameCount % 5), spriteSize * (frameCount / 5));
+            }
+            frameCount++;
+
+            if (velX < maxSpeedX) velX++;
+            velY = Math.max(velY + gravity, -maxSpeedY);
+
+            if (freeFallCounter++ > 5) airborne = true; //cannot jump when in free fall
+
+            if (playerPosition.centerX() < 0) gravity = 0;
+            else gravity = -1.5;
+
+            if (velX < 0) flip(true);
+            else if (!throwing) flip(false);
+
+            if (!slowMotion)
+                offSetPosition((int) velX, (int) -velY);
+            else
+                offSetPosition((int) (velX / maxSpeedX), (int) (-velY / maxSpeedX));   //normalize with maxSpeedX
         }
-
-        if (flipped) {
-            spriteFrame.offsetTo(spriteSize * (4 - frameCount % 5), spriteSize * (frameCount / 5));
-        } else {
-            spriteFrame.offsetTo(spriteSize * (frameCount % 5), spriteSize * (frameCount / 5));
-        }
-        frameCount++;
-
-        if (velX < maxSpeedX) velX++;
-        velY = Math.max(velY + gravity, -maxSpeedY);
-
-        if (freeFallCounter++ > 5) airborne = true; //cannot jump when in free fall
-
-        if (playerPosition.centerX() < 0) gravity = 0;
-        else gravity = -1.5;
-
-        if (velX < 0) flip(true);
-        else if (!throwing) flip(false);
-
-        if (!slowMotion)
-            offSetPosition((int) velX, (int) -velY);
-        else
-            offSetPosition((int) (velX / maxSpeedX), (int) (-velY / maxSpeedX));   //normalize with maxSpeedX
     }
 
     void jump() {
@@ -131,13 +133,13 @@ class Player extends CollisionObject {
     void collide(PointF normal) {
         offSetPosition((int) normal.x, (int) -normal.y);
 
+        velX = maxSpeedX * normal.y / Math.hypot(normal.x, normal.y);
+        if (velY * normal.y < 0) velY = velX * -normal.x / Math.hypot(normal.x, normal.y);
+
         if (normal.y > 0) {
             airborne = false;
             freeFallCounter = 0;
         }
-
-        velX = maxSpeedX * normal.y / Math.hypot(normal.x, normal.y);
-        if (!airborne) velY = velX * -normal.x / Math.hypot(normal.x, normal.y);
     }
 
     //flip does not change bounds array; bounds is symmetric
@@ -145,5 +147,13 @@ class Player extends CollisionObject {
         if (!flipped == flip) {
             flipped = !flipped;
         }
+    }
+
+    void initialize() {
+        initialized = true;
+        playerPosition = new Rect(-2 * playerSize, 800, -playerSize, 800 + playerSize);
+        velX = maxSpeedX;
+        velY = 0;
+        setBounds();
     }
 }

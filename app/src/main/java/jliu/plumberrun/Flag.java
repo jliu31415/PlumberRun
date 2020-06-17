@@ -9,14 +9,15 @@ class Flag extends CollisionObject {
     private final Bitmap flagSprites;
     private float[] bounds;
     private Rect flagPosition, spriteFrame;
-    private final int spriteWidth;
-    private int frameCount = 0, frameIncrement = 1, pauseCount = 0;
+    private final int spriteWidth, spriteHeight;
+    private int frameCount = 0, frameIncrement = 1;
 
     Flag(Bitmap flagSprites, double posX, double posY) {
         this.flagSprites = flagSprites;
         flagPosition = new Rect((int) posX, (int) posY, (int) posX + 2 * Tile.tileSize, (int) (posY + 3 * Tile.tileSize));
         spriteWidth = flagSprites.getWidth() / 5;
-        spriteFrame = new Rect(0, 0, spriteWidth, flagSprites.getHeight());
+        spriteHeight = flagSprites.getHeight() / 2;
+        spriteFrame = new Rect(0, 0, spriteWidth, spriteHeight);
         setBounds();
     }
 
@@ -25,12 +26,9 @@ class Flag extends CollisionObject {
     }
 
     void update() {
-        if (pauseCount++ == 1) {    //update every other frame
-            pauseCount = 0;
-            frameCount += frameIncrement;
-            if (frameCount == 0 || frameCount == 4) frameIncrement *= -1;
-        }
-        spriteFrame.offsetTo(frameCount * spriteWidth, 0);
+        frameCount += frameIncrement;
+        if (frameCount == 0 || frameCount == 9) frameIncrement *= -1;
+        spriteFrame.offsetTo(frameCount % 5 * spriteWidth, frameCount / 5 * spriteHeight);
     }
 
     @Override
