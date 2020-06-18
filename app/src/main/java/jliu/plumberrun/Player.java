@@ -17,9 +17,12 @@ class Player extends CollisionObject {
     private static final int playerSize = Tile.tileSize * 2;
     private double maxSpeedX = 10, maxSpeedY = 30;
     private double velX, velY;
-    private int freeFallCounter = 0;
+    private int freeFallCounter = 0, jumpCounter = 0;
     private boolean initialized = false;
-    private boolean airborne = true, windUp = false, throwing = false, slowMotion = false, flipped = false;
+    private boolean airborne = true, jumpLatch = false;
+    private boolean windUp = false, throwing = false;
+    private boolean slowMotion = false;
+    private boolean flipped = false;
     private double gravity;
 
     Player(Bitmap plumberSprites) {
@@ -72,6 +75,9 @@ class Player extends CollisionObject {
             if (velX < 0) flip(true);
             else if (!throwing) flip(false);
 
+            if (jumpLatch) jump(true);
+            if (jumpCounter++ < 5 && !airborne) jump(false); //delayed user input
+
             if (!slowMotion)
                 offSetPosition((int) velX, (int) -velY);
             else
@@ -79,7 +85,9 @@ class Player extends CollisionObject {
         }
     }
 
-    void jump() {
+    void jump(boolean latch) {
+        jumpCounter = 0;
+        jumpLatch = latch;
         if (!airborne) {
             airborne = true;
             velY = maxSpeedY;
@@ -151,7 +159,7 @@ class Player extends CollisionObject {
 
     void initialize() {
         initialized = true;
-        playerPosition = new Rect(-2 * playerSize, 800, -playerSize, 800 + playerSize);
+        playerPosition = new Rect(-2 * playerSize, 500, -playerSize, 500 + playerSize);
         velX = maxSpeedX;
         velY = 0;
         setBounds();

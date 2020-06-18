@@ -111,7 +111,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 if (Game.scaleRect(jumpButton).contains((int) event.getX(), (int) event.getY())) {
-                    player.jump();
+                    player.jump(true);
                 } else if (player.getPosition().left > 0) {
                     if (plungers.size() == 0 || plungers.get(0).hasFired()) {
                         player.windUp();
@@ -128,6 +128,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                 break;
 
             case MotionEvent.ACTION_UP:
+                player.jump(false); //reset jump latch
                 if (player.isWindingUp() && plungers.get(0).canFire()) {
                     player.throwPlunger();
                     plungers.get(0).fire();
@@ -180,7 +181,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         levelCreator.update();
         player.update();
         for (Tile tile : levelCreator.getSurroundingTiles(player.getBounds())) {
-            levelCreator.updateCollisions(player, tile);
+            levelCreator.updateCollisions(player, tile, true);
         }
         if (levelCreator.checkLevelComplete(player)) gameOver(true);
         if (levelCreator.checkPlayerDeath(player, enemies)) gameOver(false);
@@ -192,7 +193,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                 plungers.get(i).update();
                 if (plungers.get(i).collisionsEnabled()) {
                     for (Tile tile : levelCreator.getSurroundingTiles(plungers.get(i).getBounds())) {
-                        levelCreator.updateCollisions(plungers.get(i), tile);
+                        levelCreator.updateCollisions(plungers.get(i), tile, true);
                     }
                     if (plungers.get(i).isSticking()) plungers.get(i).hasCollided();
                 }

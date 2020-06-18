@@ -31,7 +31,7 @@ class LevelCreator {
         this.toilet_sprites = toilet_sprites;
         spriteSize = tileSprites.getWidth() / 5;
         spriteFrame = new Rect(0, 0, spriteSize, spriteSize);
-        tilePosition = new Rect(0, 0, tileSize, tileSize);
+        tilePosition = new Rect(0, 0, tileSize + 1, tileSize + 1);  //allow tiles to overlap to get rid of border
         enemiesInstantiated = new ArrayList<>();
     }
 
@@ -95,7 +95,7 @@ class LevelCreator {
         }
     }
 
-    boolean updateCollisions(CollisionObject collisionObject1, CollisionObject collisionObject2) {
+    boolean updateCollisions(CollisionObject collisionObject1, CollisionObject collisionObject2, boolean offsetObject) {
         float[] bounds1 = collisionObject1.getBounds();
         float[] bounds2 = collisionObject2.getBounds();
         PointF offset1 = getProjectionOffset(bounds2, bounds1);
@@ -114,7 +114,7 @@ class LevelCreator {
                 offset1.y = (int) (Math.ceil(Math.abs(offset1.y))) * (offset1.y / Math.abs(offset1.y));
 
             offset1.y *= -1;    //invert y component for consistency
-            collisionObject1.collide(offset1);
+            if (offsetObject) collisionObject1.collide(offset1);
             return true;
         }
         return false;
@@ -194,7 +194,7 @@ class LevelCreator {
     }
 
     boolean checkLevelComplete(Player player) {
-        if (flag != null && updateCollisions(player, flag)) {
+        if (flag != null && updateCollisions(player, flag, false)) {
             levelComplete = true;
         }
         return levelComplete;
@@ -224,7 +224,7 @@ class LevelCreator {
             return true;
         } else {
             for (Enemy e : enemies) {
-                if (updateCollisions(player, e)) {
+                if (updateCollisions(player, e, false)) {
                     player.initialize();
                     return true;
                 }
