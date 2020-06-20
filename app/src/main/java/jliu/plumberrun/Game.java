@@ -23,7 +23,6 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     private static final int canvasX = 1794, canvasY = 1080;    //landscape reference
     private static double canvasScaleX = 1, canvasScaleY = 1;
     private static Rect cameraFrame;
-    private int totalOffsetX;   //camera frame offset
     private final ArrayList<Integer[]> level;
     private final LevelCreator levelCreator;
     private final Player player;
@@ -37,6 +36,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     private long startTime = 0;
     private double slowDuration = 1500;
     private boolean slowMotion = false;
+    private boolean levelStarted = false;
 
     Game(Context context, int levelID) {
         super(context);
@@ -110,8 +110,9 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     public boolean onTouchEvent(MotionEvent event) {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                if (Game.scaleRect(jumpButton).contains((int) event.getX(), (int) event.getY())) {
-                    player.jump(true);
+                if (!levelStarted) levelStarted = true;
+                else if (Game.scaleRect(jumpButton).contains((int) event.getX(), (int) event.getY())) {
+                    player.setJumpLatch(true);
                 } else if (player.getPosition().left > 0) {
                     if (plungers.size() == 0 || plungers.get(0).hasFired()) {
                         player.windUp();
@@ -123,16 +124,17 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                 break;
 
             case MotionEvent.ACTION_MOVE:
-                if (player.isWindingUp())
+                if (player.isWindingUp() && plungers.size() > 0)
                     plungers.get(0).setEnd(event.getX(), event.getY());
                 break;
 
             case MotionEvent.ACTION_UP:
-                player.jump(false); //reset jump latch
-                if (player.isWindingUp() && plungers.get(0).canFire()) {
+                if (player.isWindingUp() && plungers.size() > 0) {
                     player.throwPlunger();
                     plungers.get(0).fire();
                     slowMotion = false;
+                } else {
+                    player.setJumpLatch(false); //reset jump latch
                 }
                 break;
         }
@@ -154,7 +156,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     public void draw(Canvas canvas) {
-        canvas.translate(-totalOffsetX, 0);
+        canvas.translate(-cameraFrame.left, 0);
         super.draw(canvas);
         canvas.drawColor(ContextCompat.getColor(getContext(), R.color.primary_light));
         levelCreator.draw(canvas);
@@ -166,7 +168,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         for (int i = 0; i < enemies.size(); i++) {
             enemies.get(i).draw(canvas);
         }
-        canvas.translate(totalOffsetX, 0);
+        canvas.translate(cameraFrame.left, 0);
 
         if (slowMotion) {
             canvas.translate(slowMotionBar.left, slowMotionBar.top);
@@ -178,49 +180,83 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     void update() {
-        levelCreator.update();
-        player.update();
-        for (Tile tile : levelCreator.getSurroundingTiles(player.getBounds())) {
-            levelCreator.updateCollisions(player, tile, true);
-        }
-        if (levelCreator.checkLevelComplete(player)) gameOver(true);
-        if (levelCreator.checkPlayerDeath(player, enemies)) gameOver(false);
-
-        for (int i = 0; i < plungers.size(); i++) {
-            if (plungers.get(i).outOfPlay())
-                plungers.remove(i--);
-            else {
-                plungers.get(i).update();
-                if (plungers.get(i).collisionsEnabled()) {
-                    for (Tile tile : levelCreator.getSurroundingTiles(plungers.get(i).getBounds())) {
-                        levelCreator.updateCollisions(plungers.get(i), tile, true);
-                    }
-                    if (plungers.get(i).isSticking()) plungers.get(i).hasCollided();
-                }
-            }
-        }
-
-        for (int i = 0; i < enemies.size(); i++) {
-            enemies.get(i).update();
-            levelCreator.setEnemyMovement(enemies.get(i));
-        }
-
         int cameraOffsetX = -300;
-        totalOffsetX = player.getPosition().left + cameraOffsetX;
+        int totalOffsetX = player.getPosition().left + cameraOffsetX;
         totalOffsetX = Math.min(totalOffsetX, level.size() * Tile.tileSize - canvasX);
         totalOffsetX = Math.max(totalOffsetX, 0);
-        cameraFrame.offsetTo(totalOffsetX, 0);
+        cameraFrame.offset((totalOffsetX - cameraFrame.left) / 5, 0);
 
-        //automatically release plunger
-        if (player.isWindingUp() && System.currentTimeMillis() - startTime > slowDuration)
-            onTouchEvent(MotionEvent.obtain(10, 10, MotionEvent.ACTION_UP, 0, 0, 0));
+        levelCreator.update();
+
+        if (levelStarted) {
+            player.update();
+            for (Tile tile : levelCreator.getSurroundingTiles(player.getBounds())) {
+                levelCreator.updateCollisions(player, tile, true);
+            }
+            if (levelCreator.checkLevelComplete(player)) gameOver(true);
+            else if (checkPlayerDeath()) gameOver(false);
+
+            for (int i = 0; i < plungers.size(); i++) {
+                if (plungers.get(i).outOfPlay())
+                    plungers.remove(i--);
+                else {
+                    plungers.get(i).update();
+                    if (plungers.get(i).collisionsEnabled()) {
+                        for (Tile tile : levelCreator.getSurroundingTiles(plungers.get(i).getBounds())) {
+                            levelCreator.updateCollisions(plungers.get(i), tile, true);
+                        }
+                        if (plungers.get(i).isSticking()) plungers.get(i).hasCollided();
+                        else {
+                            for (int j = 0; j < enemies.size(); j++) {
+                                if (plungers.get(i).hasFired() &&
+                                        levelCreator.updateCollisions(plungers.get(i), enemies.get(j), false)) {
+                                    enemies.remove(j--);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            //automatically release plunger
+            if (player.isWindingUp() && System.currentTimeMillis() - startTime > slowDuration) {
+                onTouchEvent(MotionEvent.obtain(10, 10, MotionEvent.ACTION_UP, 0, 0, 0));
+            }
+
+            for (int i = 0; i < enemies.size(); i++) {
+                enemies.get(i).update();
+                levelCreator.setEnemyMovement(enemies.get(i));
+            }
+        }
     }
 
     private void gameOver(boolean levelComplete) {
+        if (levelComplete) {
 
+        } else {
+            levelStarted = false;
+            player.initialize();
+            plungers.clear();
+            enemies.clear();
+            levelCreator.reset();
+        }
     }
 
-    public void addEnemy(Enemy enemy) {
+    boolean checkPlayerDeath() {
+        if (player.getPosition().left > 0 && !Rect.intersects(Game.getCameraFrame(), player.getPosition())) {
+            return true;
+        } else {
+            for (Enemy e : enemies) {
+                if (levelCreator.updateCollisions(player, e, false)) {
+                    return true;
+                }
+
+            }
+        }
+        return false;
+    }
+
+    void addEnemy(Enemy enemy) {
         enemies.add(enemy);
     }
 

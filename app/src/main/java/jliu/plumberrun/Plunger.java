@@ -10,7 +10,7 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 
 class Plunger extends CollisionObject {
-    private final Bitmap plungerSprites;
+    private final Bitmap plungerSprite;
     private final Player player;
     private final float startX, startY;
     private float endX, endY;
@@ -20,17 +20,19 @@ class Plunger extends CollisionObject {
     private static final int plungerSize = Tile.tileSize * 2;
     private final double plungerMaxSpeed = 35;
     private double plungerSpeed = 0;   //current plunger speed
-    private float aim, prevAngle, angle, snapToAngle, constrain; //angle follows parabolic arc when fired; [-PI/2, 3PI/2]
+    private float aim;
+    private float angle;
+    private float snapToAngle;
     private double power = 1;   //pull back more for more power; [.5, 1]
     private final double gravity = -.5;
     private int airTime = 0;
-    private boolean canFire = true, fired = false, sticking = false, collided = false;
+    private boolean canFire = true, fired = false, sticking = false, collided = false, collisionsEnabled = true;
     private float pivotX, pivotY;  //image rotation pivot coordinates
     private float[] bounds;  //bounding points
-    private final Paint white;
+    private final Paint white, opacity;
 
-    Plunger(Bitmap plungerSprites, Player player, float touchX, float touchY) {
-        this.plungerSprites = plungerSprites;
+    Plunger(Bitmap plungerSprite, Player player, float touchX, float touchY) {
+        this.plungerSprite = plungerSprite;
         this.player = player;
         startX = endX = touchX;
         startY = endY = touchY;
@@ -43,11 +45,14 @@ class Plunger extends CollisionObject {
         setBounds();
         white = new Paint();
         white.setColor(Color.WHITE);
+        opacity = new Paint();
+        opacity.setAlpha(80);
     }
 
     void draw(Canvas canvas) {
         canvas.rotate((float) Math.toDegrees(-angle), (float) (Game.scaleX(pivotX)), (float) (Game.scaleY(pivotY)));
-        canvas.drawBitmap(plungerSprites, null, Game.scaleRect(plungerPosition), null);
+        if (canFire || fired) canvas.drawBitmap(plungerSprite, null, Game.scaleRect(plungerPosition), null);
+        else canvas.drawBitmap(plungerSprite, null, Game.scaleRect(plungerPosition), opacity);
         canvas.rotate((float) Math.toDegrees(angle), (float) (Game.scaleX(pivotX)), (float) (Game.scaleY(pivotY)));
 
         //draw arc
@@ -61,7 +66,7 @@ class Plunger extends CollisionObject {
     }
 
     void update() {
-        prevAngle = angle;
+        float prevAngle = angle;
         if (!fired) {
             velX = (player.getPosition().left + plungerOffset.x) - plungerPosition.left;
             velY = plungerPosition.top - (player.getPosition().top + plungerOffset.y);
@@ -94,12 +99,13 @@ class Plunger extends CollisionObject {
             } else {
                 velX = plungerSpeed * Math.cos(aim);
                 velY = Math.max((plungerSpeed * Math.sin(aim) + gravity * airTime++), -20);
-                angle = (float) Math.atan(velY / velX);
+                angle = plungerSpeed == 0 ? aim : (float) Math.atan(velY / velX);
                 if (velX < 0) angle += Math.PI;
             }
         }
 
         canFire = true;
+        collisionsEnabled = collisionsEnabled && !(sticking && angle == snapToAngle);
 
         offSetPosition((int) velX, (int) -velY);
         rotate(angle - prevAngle);
@@ -107,8 +113,8 @@ class Plunger extends CollisionObject {
 
     @Override
     void setBounds() {
-        bounds = new float[]{plungerPosition.right, plungerPosition.centerY() - plungerSize * .125f,
-                plungerPosition.right, plungerPosition.centerY() + plungerSize * .125f,
+        bounds = new float[]{plungerPosition.right - 5, plungerPosition.centerY() - plungerSize * .125f,
+                plungerPosition.right - 5, plungerPosition.centerY() + plungerSize * .125f,
                 plungerPosition.right - plungerSize * .333f, plungerPosition.centerY()};
     }
 
@@ -172,7 +178,13 @@ class Plunger extends CollisionObject {
         if (canFire) {
             fired = true;
             plungerSpeed = power * plungerMaxSpeed;
-        }
+        } else fall();
+    }
+
+    private void fall() {
+        fired = true;
+        collisionsEnabled = false;
+        plungerSpeed = 0;
     }
 
     void setEnd(float endX, float endY) {
@@ -195,11 +207,12 @@ class Plunger extends CollisionObject {
     }
 
     boolean outOfPlay() {
-        return plungerPosition.top > Game.getCameraFrame().bottom || plungerPosition.right < Game.getCameraFrame().left;
+        return plungerPosition.centerY() > Game.getCameraFrame().bottom + plungerSize
+                || plungerPosition.centerX() < Game.getCameraFrame().left - plungerSize;
     }
 
     boolean collisionsEnabled() {
-        return !(sticking && angle == snapToAngle);
+        return collisionsEnabled;
     }
 
     boolean isSticking() {
@@ -212,9 +225,5 @@ class Plunger extends CollisionObject {
 
     boolean hasFired() {
         return fired;
-    }
-
-    boolean canFire() {
-        return canFire;
     }
 }

@@ -218,20 +218,9 @@ class LevelCreator {
         }
     }
 
-    boolean checkPlayerDeath(Player player, ArrayList<Enemy> enemies) {
-        if (Game.getCameraFrame().left > 0 && !Rect.intersects(Game.getCameraFrame(), player.getPosition())) {
-            player.initialize();    //reset when player falls out of frame
-            return true;
-        } else {
-            for (Enemy e : enemies) {
-                if (updateCollisions(player, e, false)) {
-                    player.initialize();
-                    return true;
-                }
-
-            }
-        }
-        return false;
+    void reset() {
+        enemiesInstantiated.clear();
+        flag = null;
     }
 
     static class FireworkParticle {

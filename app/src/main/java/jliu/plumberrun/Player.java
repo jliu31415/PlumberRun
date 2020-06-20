@@ -15,7 +15,7 @@ class Player extends CollisionObject {
     private float[] bounds; //bounding points
     private int frameCount = 0, pauseCount = 0;
     private static final int playerSize = Tile.tileSize * 2;
-    private double maxSpeedX = 10, maxSpeedY = 30;
+    private double maxSpeedX = 15, maxSpeedY = 35;
     private double velX, velY;
     private int freeFallCounter = 0, jumpCounter = 0;
     private boolean initialized = false;
@@ -70,13 +70,13 @@ class Player extends CollisionObject {
             if (freeFallCounter++ > 5) airborne = true; //cannot jump when in free fall
 
             if (playerPosition.centerX() < 0) gravity = 0;
-            else gravity = -1.5;
+            else gravity = -2;
 
             if (velX < 0) flip(true);
             else if (!throwing) flip(false);
 
-            if (jumpLatch) jump(true);
-            if (jumpCounter++ < 5 && !airborne) jump(false); //delayed user input
+            if (jumpLatch) jump();
+            if (jumpCounter++ < 5 && !airborne) jump(); //delayed user input
 
             if (!slowMotion)
                 offSetPosition((int) velX, (int) -velY);
@@ -85,13 +85,16 @@ class Player extends CollisionObject {
         }
     }
 
-    void jump(boolean latch) {
+    private void jump() {
         jumpCounter = 0;
-        jumpLatch = latch;
         if (!airborne) {
             airborne = true;
             velY = maxSpeedY;
         }
+    }
+
+    void setJumpLatch(boolean jumpLatch) {
+        this.jumpLatch = jumpLatch;
     }
 
     void windUp() {
