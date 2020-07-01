@@ -78,7 +78,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
         Scanner scan = new Scanner(is);
         ArrayList<Integer[]> level = new ArrayList<>();
-        int numRows = 1 + canvasY / Tile.tileSize;
+        int numRows = (int) Math.ceil((double) canvasY / Tile.tileSize);
         int id = 0;
         boolean autoFill;
 
@@ -201,7 +201,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                     plungers.remove(i--);
                 else {
                     plungers.get(i).update();
-                    if (plungers.get(i).collisionsEnabled()) {
+                    if (plungers.get(i).tileCollisionsEnabled()) {
                         for (Tile tile : levelCreator.getSurroundingTiles(plungers.get(i).getBounds())) {
                             levelCreator.updateCollisions(plungers.get(i), tile, true);
                         }
@@ -231,6 +231,8 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     private void gameOver(boolean levelComplete) {
+        //release plunger
+        onTouchEvent(MotionEvent.obtain(10, 10, MotionEvent.ACTION_UP, 0, 0, 0));
         if (levelComplete) {
 
         } else {

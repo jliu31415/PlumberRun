@@ -72,8 +72,7 @@ class Player extends CollisionObject {
             if (playerPosition.centerX() < 0) gravity = 0;
             else gravity = -2;
 
-            if (velX < 0) flip(true);
-            else if (!throwing) flip(false);
+            if (!throwing) flip(false);
 
             if (jumpLatch) jump();
             if (jumpCounter++ < 5 && !airborne) jump(); //delayed user input

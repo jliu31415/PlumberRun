@@ -7,7 +7,7 @@ class Tile extends CollisionObject {
     private int tileID;
     private int posX, posY;
     private float[] bounds;
-    static final int tileSize = 80;
+    static final int tileSize = 90;
 
     Tile(int tileID, int posX, int posY) {
         this.tileID = tileID;

@@ -18,15 +18,15 @@ class Plunger extends CollisionObject {
     private Rect plungerPosition;
     private Point plungerOffset;   //offset plunger to player's hand
     private static final int plungerSize = Tile.tileSize * 2;
-    private final double plungerMaxSpeed = 35;
+    private final double plungerMaxSpeed = 50;
     private double plungerSpeed = 0;   //current plunger speed
     private float aim;
     private float angle;
     private float snapToAngle;
     private double power = 1;   //pull back more for more power; [.5, 1]
-    private final double gravity = -.5;
+    private final double gravity = -1;
     private int airTime = 0;
-    private boolean canFire = true, fired = false, sticking = false, collided = false, collisionsEnabled = true;
+    private boolean canFire = true, fired = false, sticking = false, collided = false, falling = false;
     private float pivotX, pivotY;  //image rotation pivot coordinates
     private float[] bounds;  //bounding points
     private final Paint white, opacity;
@@ -95,17 +95,17 @@ class Plunger extends CollisionObject {
                 dTheta = dTheta < -Math.PI ? dTheta + 2 * Math.PI : dTheta;
 
                 angle += dTheta / 3.0;
-                if (Math.abs(dTheta) < 1E-3) angle = snapToAngle;
+                if (Math.abs(dTheta) < .05) angle = snapToAngle;
             } else {
                 velX = plungerSpeed * Math.cos(aim);
                 velY = Math.max((plungerSpeed * Math.sin(aim) + gravity * airTime++), -20);
-                angle = plungerSpeed == 0 ? aim : (float) Math.atan(velY / velX);
+                //angle unchanged when falling
+                angle = plungerSpeed == 0 ? angle : (float) Math.atan(velY / velX);
                 if (velX < 0) angle += Math.PI;
             }
         }
 
         canFire = true;
-        collisionsEnabled = collisionsEnabled && !(sticking && angle == snapToAngle);
 
         offSetPosition((int) velX, (int) -velY);
         rotate(angle - prevAngle);
@@ -183,7 +183,8 @@ class Plunger extends CollisionObject {
 
     private void fall() {
         fired = true;
-        collisionsEnabled = false;
+        sticking = false;
+        falling = true;
         plungerSpeed = 0;
     }
 
@@ -211,8 +212,8 @@ class Plunger extends CollisionObject {
                 || plungerPosition.centerX() < Game.getCameraFrame().left - plungerSize;
     }
 
-    boolean collisionsEnabled() {
-        return collisionsEnabled;
+    boolean tileCollisionsEnabled() {
+        return !falling && !(sticking && angle == snapToAngle);
     }
 
     boolean isSticking() {
