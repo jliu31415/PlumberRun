@@ -12,33 +12,34 @@ import java.util.ArrayList;
 
 class LevelCreator {
     private final Game game;
-    private ArrayList<Integer[]> level;
-    private final Bitmap tileSprites, flagSprites, toilet_sprites;
     private Flag flag;
-    private Rect spriteFrame;
-    private Rect tilePosition;
-    private final int spriteSize; //tile spriteWidth = spriteHeight
-    private static final int tileSize = Tile.tileSize;
-    private boolean levelComplete;
+    private ArrayList<Integer[]> level;
     private ArrayList<FireworkParticle> fireworks;
     private ArrayList<Point> enemiesInstantiated;    //keeps track of instantiated enemies
+    private final Bitmap tileSprites, flagSprites, toilet_sprites;
+    private Rect tilePosition, spriteFrame;
+    private final int spriteSize; //tile spriteWidth = spriteHeight
+    private boolean levelComplete;
 
-    LevelCreator(Game game, ArrayList<Integer[]> level, Bitmap tileSprites, Bitmap flagSprites, Bitmap toilet_sprites) {
+    LevelCreator(Game game, Bitmap tileSprites, Bitmap flagSprites, Bitmap toilet_sprites) {
         this.game = game;
-        this.level = level;
         this.tileSprites = tileSprites;
         this.flagSprites = flagSprites;
         this.toilet_sprites = toilet_sprites;
         spriteSize = tileSprites.getWidth() / 5;
         spriteFrame = new Rect(0, 0, spriteSize, spriteSize);
-        tilePosition = new Rect(0, 0, tileSize, tileSize);  //allow tiles to overlap to get rid of border
+        tilePosition = new Rect(0, 0, Constants.tileSize, Constants.tileSize);  //allow tiles to overlap to get rid of border
         enemiesInstantiated = new ArrayList<>();
+    }
+
+    void initializeLevel(ArrayList<Integer[]> level) {
+        this.level = level;
     }
 
     void draw(Canvas canvas) {
         int framePosX, framePosY;
 
-        for (int col = Game.getCameraFrame().left / tileSize; col <= Game.getCameraFrame().right / tileSize; col++) {
+        for (int col = Game.cameraFrame.left / Constants.tileSize; col <= Game.cameraFrame.right / Constants.tileSize; col++) {
             if (col == level.size()) break;
             for (int row = 0; row < level.get(col).length; row++) {
                 int id = level.get(col)[row];
@@ -46,8 +47,8 @@ class LevelCreator {
                     framePosX = spriteSize * (--id % 5);
                     framePosY = spriteSize * (id / 5);
                     spriteFrame.offsetTo(framePosX, framePosY);
-                    tilePosition.offsetTo(col * tileSize, row * tileSize);
-                    canvas.drawBitmap(tileSprites, spriteFrame, Game.scaleRect(tilePosition), null);
+                    tilePosition.offsetTo(col * Constants.tileSize, row * Constants.tileSize);
+                    canvas.drawBitmap(tileSprites, spriteFrame, tilePosition, null);
                 } else if (id == 50) {
                     boolean create = true;
                     for (Point p : enemiesInstantiated) {
@@ -57,12 +58,12 @@ class LevelCreator {
                         }
                     }
                     if (create) {
-                        game.addEnemy(new Enemy(toilet_sprites, col * tileSize, (row - 1) * tileSize));
+                        game.addEnemy(new Enemy(toilet_sprites, col * Constants.tileSize, row * Constants.tileSize));
                         enemiesInstantiated.add(new Point(col, row));
                     }
                 } else if (id == 99) {
                     if (flag == null)
-                        flag = new Flag(flagSprites, col * tileSize, (row - 2) * tileSize);
+                        flag = new Flag(flagSprites, col * Constants.tileSize, row * Constants.tileSize);
                     flag.draw(canvas);
                 }
             }
@@ -75,8 +76,8 @@ class LevelCreator {
                 for (int i = 0; i < 5; i++) {
                     Paint color = new Paint();
                     color.setColor(Color.rgb((int) (255 * Math.random()), (int) (255 * Math.random()), (int) (255 * Math.random())));
-                    fireworks.add(new FireworkParticle(Game.getCameraFrame().left + Game.getCanvasDimensions().width() / 5.0 * (i + Math.random()),
-                            Game.getCanvasDimensions().height(), true, color));
+                    fireworks.add(new FireworkParticle(Game.cameraFrame.left + Game.cameraFrame.width() / 5.0 * (i + Math.random()),
+                            Game.cameraFrame.height(), true, color));
                 }
             }
             for (FireworkParticle f : fireworks) {
@@ -177,17 +178,17 @@ class LevelCreator {
         int coordinateX = minX, coordinateY = minY;   //border coordinates
         do {
             try {
-                int tileID = level.get(coordinateX / tileSize)[coordinateY / tileSize];
+                int tileID = level.get(coordinateX / Constants.tileSize)[coordinateY / Constants.tileSize];
                 if (0 < tileID && tileID < 16)
                     surroundingTiles.add(new Tile(tileID, coordinateX, coordinateY));
             } catch (IndexOutOfBoundsException e) {
                 e.printStackTrace();
             }
 
-            if (coordinateX < maxX && coordinateY == minY) coordinateX += tileSize;
-            else if (coordinateX >= maxX && coordinateY < maxY) coordinateY += tileSize;
-            else if (coordinateX > minX) coordinateX -= tileSize;
-            else coordinateY -= tileSize;
+            if (coordinateX < maxX && coordinateY == minY) coordinateX += Constants.tileSize;
+            else if (coordinateX >= maxX && coordinateY < maxY) coordinateY += Constants.tileSize;
+            else if (coordinateX > minX) coordinateX -= Constants.tileSize;
+            else coordinateY -= Constants.tileSize;
         } while (coordinateX != minX || coordinateY != minY);
 
         return surroundingTiles;
@@ -202,16 +203,16 @@ class LevelCreator {
 
     void setEnemyMovement(Enemy enemy) {
         try {
-            int coordinateX = (int) (enemy.getPosition().centerX() + Math.copySign(tileSize, enemy.getVelX()));
+            int coordinateX = (int) (enemy.getPosition().centerX() + Math.copySign(Constants.tileSize, enemy.getVelX()));
             int coordinateY = enemy.getPosition().top;
 
-            int tileID = level.get(coordinateX / tileSize)[coordinateY / tileSize];
+            int tileID = level.get(coordinateX / Constants.tileSize)[coordinateY / Constants.tileSize];
             if (0 < tileID && tileID < 16) enemy.flip(enemy.getVelX() < 0);
 
-            tileID = level.get(coordinateX / tileSize)[coordinateY / tileSize + 1];
+            tileID = level.get(coordinateX / Constants.tileSize)[coordinateY / Constants.tileSize + 1];
             if (0 < tileID && tileID < 16) enemy.flip(enemy.getVelX() < 0);
 
-            tileID = level.get(coordinateX / tileSize)[coordinateY / tileSize + 2];
+            tileID = level.get(coordinateX / Constants.tileSize)[coordinateY / Constants.tileSize + 2];
             if (tileID == 0) enemy.flip(enemy.getVelX() < 0);
         } catch (IndexOutOfBoundsException e) {
             e.printStackTrace();
@@ -234,12 +235,13 @@ class LevelCreator {
             this.parent = parent;   //parent objects differ from exploded fragments
             this.posX = posX;
             this.posY = posY;
+            double launchVel = Constants.fireworkLaunchVel;
             if (parent) {
                 velX = 0;
-                velY = 30 + 15 * Math.random();
+                velY = launchVel * (1 + .5 * Math.random());
             } else {
-                velX = 10 * Math.random() - 5;
-                velY = 10 * Math.random() - 5;
+                velX = (launchVel / 3.0) * (Math.random() - .5);
+                velY = (launchVel / 3.0) * (Math.random() - .5);
             }
 
             this.color = color;
@@ -256,7 +258,7 @@ class LevelCreator {
 
             posX += velX;
             posY -= velY;
-            velY--;
+            velY += Constants.projectileGravity;
         }
 
         private void explode() {
@@ -268,8 +270,10 @@ class LevelCreator {
         }
 
         void draw(Canvas canvas) {
+            double fragmentSize = Constants.fragmentSize;
             if (!exploded)  //stop drawing parent after explosion
-                canvas.drawCircle((float) Game.scaleX(posX), (float) Game.scaleY(posY), (float) Game.scaleX(10), color);
+                canvas.drawCircle((float) posX, (float) posY,
+                        (float) (fragmentSize * (1 + .5 * Math.random())), color);
             if (fragments != null) {
                 for (FireworkParticle f : fragments) f.draw(canvas);
             }
@@ -278,7 +282,7 @@ class LevelCreator {
         boolean canRemove() {
             if (exploded && fragments.size() == 0)
                 return true;    //condition for removing parent
-            return !parent && posY > Game.getCanvasDimensions().height();  //condition for removing fragment
+            return !parent && posY > Game.cameraFrame.height();  //condition for removing fragment
         }
     }
 }

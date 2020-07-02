@@ -7,14 +7,17 @@ import android.graphics.Rect;
 
 class Flag extends CollisionObject {
     private final Bitmap flagSprites;
-    private float[] bounds;
     private Rect flagPosition, spriteFrame;
+    private float[] bounds;
     private final int spriteWidth, spriteHeight;
     private int frameCount = 0, frameIncrement = 1;
 
+
     Flag(Bitmap flagSprites, double posX, double posY) {
         this.flagSprites = flagSprites;
-        flagPosition = new Rect((int) posX, (int) posY, (int) posX + 2 * Tile.tileSize, (int) (posY + 3 * Tile.tileSize));
+        int flagHeight = Constants.flagHeight;
+        posY -= flagHeight - Constants.tileSize;
+        flagPosition = new Rect((int) posX, (int) posY, (int) (posX + flagHeight * 2 / 3.0), (int) (posY + flagHeight));
         spriteWidth = flagSprites.getWidth() / 5;
         spriteHeight = flagSprites.getHeight() / 2;
         spriteFrame = new Rect(0, 0, spriteWidth, spriteHeight);
@@ -22,7 +25,7 @@ class Flag extends CollisionObject {
     }
 
     void draw(Canvas canvas) {
-        canvas.drawBitmap(flagSprites, spriteFrame, Game.scaleRect(flagPosition), null);
+        canvas.drawBitmap(flagSprites, spriteFrame, flagPosition, null);
     }
 
     void update() {

@@ -2,21 +2,19 @@ package jliu.plumberrun;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Matrix;
-import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.Rect;
 
 class Enemy extends CollisionObject {
     private final Bitmap toiletSprites;
-    private Bitmap mirroredSprites;
-    private float[] bounds;
-    private int enemySize = 2 * Tile.tileSize;
+    private final Bitmap mirroredSprites;
     private Rect enemyPosition, spriteFrame;
+    private float[] bounds;
     private final int spriteSize;
+    private final int enemySize = Constants.enemySize;
+    private double velX = -Constants.enemySpeed;    //enemy starts by moving left
     private int frameCount = 0, frameIncrement = 1, pauseCount = 1;
-    private int velX = -5;
     private boolean flipped = false;
 
     Enemy(Bitmap toiletSprites, double posX, double posY) {
@@ -25,6 +23,7 @@ class Enemy extends CollisionObject {
         reflection.setScale(-1, 1, toiletSprites.getWidth() / 2.0f, toiletSprites.getHeight() / 2.0f);
         mirroredSprites = Bitmap.createBitmap(toiletSprites, 0, 0, toiletSprites.getWidth(), toiletSprites.getHeight(),
                 reflection, true);
+        posY -= enemySize - Constants.tileSize;
         enemyPosition = new Rect((int) posX, (int) posY, (int) posX + enemySize, (int) posY + enemySize);
         spriteSize = toiletSprites.getWidth() / 5;
         spriteFrame = new Rect(0, 0, spriteSize, spriteSize);
@@ -33,9 +32,9 @@ class Enemy extends CollisionObject {
 
     void draw(Canvas canvas) {
         if (flipped)
-            canvas.drawBitmap(mirroredSprites, spriteFrame, Game.scaleRect(enemyPosition), null);
+            canvas.drawBitmap(mirroredSprites, spriteFrame, enemyPosition, null);
         else {
-            canvas.drawBitmap(toiletSprites, spriteFrame, Game.scaleRect(enemyPosition), null);
+            canvas.drawBitmap(toiletSprites, spriteFrame, enemyPosition, null);
         }
     }
 
@@ -52,7 +51,7 @@ class Enemy extends CollisionObject {
             spriteFrame.offsetTo(frameCount * spriteSize, 0);
         }
 
-        offSetPosition(velX, 0);
+        offSetPosition((int) velX, 0);
     }
 
     @Override

@@ -4,10 +4,10 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 
 class Tile extends CollisionObject {
+    private float[] bounds;
+    private final int tileSize = Constants.tileSize;
     private int tileID;
     private int posX, posY;
-    private float[] bounds;
-    static final int tileSize = 90;
 
     Tile(int tileID, int posX, int posY) {
         this.tileID = tileID;
