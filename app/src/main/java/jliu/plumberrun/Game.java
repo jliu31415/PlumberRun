@@ -20,12 +20,13 @@ import java.util.Scanner;
 
 @SuppressLint("ViewConstructor")
 class Game extends SurfaceView implements SurfaceHolder.Callback {
+    private final GameLoop gameLoop;
     private ArrayList<Integer[]> level;
     private final int levelID;
     private final LevelCreator levelCreator;
     private final Player player;
-    private final Plungers plungers;
-    private final GameLoop gameLoop;
+    private final PlungerType plunger;
+    private ArrayList<Plunger> plungers;
     private ArrayList<Enemy> enemies;
     public static Rect cameraFrame;
     private Rect jumpButton;
@@ -49,10 +50,11 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         Bitmap plunger_sprite = BitmapFactory.decodeResource(getResources(), R.drawable.plunger_sprite);
 
         this.levelID = levelID;
+        gameLoop = new GameLoop(this, surfaceHolder);
         levelCreator = new LevelCreator(this, tile_sprites, flag_sprites, toilet_sprites);
         player = new Player(plumber_sprites);
-        plungers = new Plungers(plunger_sprite, player);
-        gameLoop = new GameLoop(this, surfaceHolder);
+        plunger = new PlungerType(plunger_sprite, player);
+        plungers = new ArrayList<>();
         enemies = new ArrayList<>();
 
         white = new Paint();
@@ -109,9 +111,9 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                 else if (jumpButton.contains((int) event.getX(), (int) event.getY())) {
                     player.setJumpLatch(true);
                 } else if (player.getPosition().left > 0) {
-                    if (plungers.reloaded()) {
+                    if (plungers.size() == 0 || plungers.get(0).hasFired()) {
                         player.windUp();
-                        plungers.addPlunger(event.getX(), event.getY());
+                        plungers.add(0, plunger.createPlunger(event.getX(), event.getY()));
                         startTime = System.currentTimeMillis();
                         slowMotion = true;
                     }
@@ -119,14 +121,14 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                 break;
 
             case MotionEvent.ACTION_MOVE:
-                if (player.isWindingUp() && plungers.getList().size() > 0)
-                    plungers.getList().get(0).setEnd(event.getX(), event.getY());
+                if (player.isWindingUp() && plungers.size() > 0)
+                    plungers.get(0).setEnd(event.getX(), event.getY());
                 break;
 
             case MotionEvent.ACTION_UP:
-                if (player.isWindingUp() && plungers.getList().size() > 0) {
+                if (player.isWindingUp() && plungers.size() > 0) {
                     player.throwPlunger();
-                    plungers.getList().get(0).fire();
+                    plungers.get(0).fire();
                     slowMotion = false;
                 } else {
                     player.setJumpLatch(false); //reset jump latch
@@ -165,7 +167,10 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         canvas.drawColor(ContextCompat.getColor(getContext(), R.color.primary_light));
         levelCreator.draw(canvas);
         player.draw(canvas);
-        plungers.drawPlungers(canvas);
+        //do not use for each loop (concurrent modification exception)
+        for (int i = 0; i < plungers.size(); i++) {
+            plungers.get(i).draw(canvas);
+        }
         for (int i = 0; i < enemies.size(); i++) {
             enemies.get(i).draw(canvas);
         }
@@ -196,21 +201,25 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
             if (levelCreator.checkLevelComplete(player)) gameOver(true);
             else if (checkPlayerDeath()) gameOver(false);
 
-            plungers.updatePlungers();
-            for (int i = 0; i < plungers.getList().size(); i++) {
-                if (plungers.getList().get(i).tileCollisionsEnabled()) {
-                    for (Tile tile : levelCreator.getSurroundingTiles(plungers.getList().get(i).getBounds())) {
-                        levelCreator.updateCollisions(plungers.getList().get(i), tile, true);
-                    }
-                    if (plungers.getList().get(i).isSticking()) {
-                        plungers.getList().get(i).hasCollided();
-                    } else {
-                        for (int j = 0; j < enemies.size(); j++) {
-                            if (plungers.getList().get(i).hasFired() &&
-                                    levelCreator.updateCollisions(plungers.getList().get(i), enemies.get(j), false))
-                                enemies.remove(j--);
+            for (int i = 0; i < plungers.size(); i++) {
+                if (plungers.get(i).outOfPlay()) {
+                    plungers.remove(i--);
+                } else {
+                    plungers.get(i).update();
+                    if (plungers.get(i).tileCollisionsEnabled()) {
+                        for (Tile tile : levelCreator.getSurroundingTiles(plungers.get(i).getBounds())) {
+                            levelCreator.updateCollisions(plungers.get(i), tile, true);
                         }
+                        if (plungers.get(i).isSticking()) {
+                            plungers.get(i).hasCollided();
+                        } else {
+                            for (int j = 0; j < enemies.size(); j++) {
+                                if (plungers.get(i).hasFired() &&
+                                        levelCreator.updateCollisions(plungers.get(i), enemies.get(j), false))
+                                    enemies.remove(j--);
+                            }
 
+                        }
                     }
                 }
             }
@@ -235,7 +244,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         } else {
             levelStarted = false;
             player.initialize();
-            plungers.clearList();
+            plungers.clear();
             enemies.clear();
             levelCreator.reset();
         }
