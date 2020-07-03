@@ -3,6 +3,7 @@ package jliu.plumberrun;
 import android.graphics.PointF;
 import android.graphics.Rect;
 
+
 class Tile extends CollisionObject {
     private float[] bounds;
     private final int tileSize = Constants.tileSize;
@@ -18,7 +19,7 @@ class Tile extends CollisionObject {
 
     @Override
     void setBounds() {
-        if (tileID <= 7)  //full tile
+        if (tileID > 0 && tileID <= 7)  //full tile
             bounds = new float[]{posX, posY, posX + tileSize, posY, posX + tileSize, posY + tileSize, posX, posY + tileSize};
         else if (tileID == 8) //slope up
             bounds = new float[]{posX, posY + tileSize, posX + tileSize, posY, posX + tileSize, posY + tileSize};
@@ -32,6 +33,7 @@ class Tile extends CollisionObject {
                     posX + tileSize, posY + tileSize};
         else if (tileID <= 15)  //half tile
             bounds = new float[]{posX, posY, posX + tileSize, posY, posX + tileSize, posY + .5f * tileSize, posX, posY + .5f * tileSize};
+        else throw new IllegalArgumentException("Invalid Tile ID");
     }
 
     @Override
@@ -52,5 +54,31 @@ class Tile extends CollisionObject {
     @Override
     void collide(PointF normal) {
 
+    }
+
+    int getTileID() {
+        return tileID;
+    }
+
+    static String getFlushAttribute(int tileID) {
+        //encoding starting from top edge, CW
+        //0 = no edge, 1 = full edge, 2 = incomplete edge
+        if (tileID > 0 && tileID <= 7)  //full tile
+            return "1111";
+        else if (tileID == 8) //slope up
+            return "0110";
+        else if (tileID == 9)   //slope down
+            return "0011";
+        else if (tileID == 10)   //rounded left
+            return "1100";
+        else if (tileID == 11)   //rounded right
+            return "1001";
+        else if (tileID <= 15)  //half tile
+            return "0202";
+        return "";
+    }
+
+    static boolean isTile(int tileID) {
+        return 0 < tileID && tileID < 16;
     }
 }

@@ -11,13 +11,11 @@ class Player extends CollisionObject {
     private final Bitmap mirroredSprites;
     private Rect playerPosition, spriteFrame;
     private float[] bounds; //bounding points
-
     private final int spriteSize;   //spriteWidth = spriteHeight
     private static final int playerSize = Constants.playerSize;
     private final double maxSpeedX = Constants.playerMaxSpeedX;
     private final double jumpVel = Constants.playerJumpVel;
     private double velX, velY;
-    private double gravity;
     private int frameCount = 0, pauseCount = 0;
     private int freeFallCounter = 0, jumpCounter = 0;
     private boolean initialized = false;
@@ -64,18 +62,19 @@ class Player extends CollisionObject {
             }
             frameCount++;
 
-            if (velX < maxSpeedX) velX += (maxSpeedX - velX) / 10;
-            velY = Math.max(velY + gravity, -jumpVel);
-
             if (freeFallCounter++ > 5) airborne = true; //cannot jump when in free fall
-
-            if (playerPosition.centerX() < 0) gravity = 0;
-            else gravity = Constants.playerGravity;
 
             if (!throwing) flip(false);
 
             if (jumpLatch) jump();
             if (jumpCounter++ < 5 && !airborne) jump(); //delayed user input
+
+            double gravity;
+            if (playerPosition.centerX() < 0) gravity = 0;
+            else gravity = Constants.playerGravity;
+
+            if (velX < maxSpeedX) velX += (maxSpeedX - velX) / 10;
+            velY = Math.max(velY + gravity, -jumpVel);
 
             if (!slowMotion)
                 offSetPosition((int) velX, (int) -velY);
@@ -144,7 +143,8 @@ class Player extends CollisionObject {
         offSetPosition((int) normal.x, (int) -normal.y);
 
         velX = maxSpeedX * normal.y / Math.hypot(normal.x, normal.y);
-        if (velY * normal.y < 0) velY = velX * -normal.x / Math.hypot(normal.x, normal.y);
+        if (Math.abs(normal.y / Math.hypot(normal.x, normal.y)) > .707)  //only "set" velY for low-incline slopes (45-degree threshold)
+            velY = velX * -normal.x / normal.y;
 
         if (normal.y > 0) {
             airborne = false;

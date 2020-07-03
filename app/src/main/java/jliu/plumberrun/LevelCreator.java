@@ -115,6 +115,13 @@ class LevelCreator {
                 offset1.y = (int) (Math.ceil(Math.abs(offset1.y))) * (offset1.y / Math.abs(offset1.y));
 
             offset1.y *= -1;    //invert y component for consistency
+
+            if (collisionObject2 instanceof Tile) {
+                if (tileCollisionInvalid((Tile) collisionObject2, offset1)) {
+                    offsetObject = false;
+                }
+            }
+
             if (offsetObject) collisionObject1.collide(offset1);
             return true;
         }
@@ -162,6 +169,43 @@ class LevelCreator {
         return ret;
     }
 
+    private boolean tileCollisionInvalid(Tile tile, PointF offset) {
+        int coordinateX = (int) Math.copySign(Constants.tileSize, offset.x) + tile.getPosition().centerX();
+        int coordinateY = (int) Math.copySign(Constants.tileSize, -offset.y) + tile.getPosition().centerY();
+
+        if (offset.x != 0) {
+            try {
+                int tileID = level.get(coordinateX / Constants.tileSize)[tile.getPosition().centerY() / Constants.tileSize];
+                if (Tile.isTile(tileID)) {
+                    int index = 1;
+                    if (offset.x < 0) index = 3;
+                    if (Tile.getFlushAttribute(tile.getTileID()).charAt(index) != '0'
+                            && Tile.getFlushAttribute(tileID).charAt((index + 2) % 4) == '1')
+                        return true;
+                }
+            } catch (IndexOutOfBoundsException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (offset.y != 0) {
+            try {
+                int tileID = level.get(tile.getPosition().centerX() / Constants.tileSize)[coordinateY / Constants.tileSize];
+                if (Tile.isTile(tileID)) {
+                    int index = 0;
+                    if (offset.y < 0) index = 2;
+                    if (Tile.getFlushAttribute(tile.getTileID()).charAt(index) != '0'
+                            && Tile.getFlushAttribute(tileID).charAt((index + 2) % 4) == '1')
+                        return true;
+                }
+            } catch (IndexOutOfBoundsException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return false;
+    }
+
     ArrayList<Tile> getSurroundingTiles(float[] points) {
         ArrayList<Tile> surroundingTiles = new ArrayList<>();
         int minX = (int) points[0], maxX = (int) points[0], minY = (int) points[1], maxY = (int) points[1];
@@ -179,7 +223,7 @@ class LevelCreator {
         do {
             try {
                 int tileID = level.get(coordinateX / Constants.tileSize)[coordinateY / Constants.tileSize];
-                if (0 < tileID && tileID < 16)
+                if (Tile.isTile(tileID))
                     surroundingTiles.add(new Tile(tileID, coordinateX, coordinateY));
             } catch (IndexOutOfBoundsException e) {
                 e.printStackTrace();
@@ -207,10 +251,10 @@ class LevelCreator {
             int coordinateY = enemy.getPosition().top;
 
             int tileID = level.get(coordinateX / Constants.tileSize)[coordinateY / Constants.tileSize];
-            if (0 < tileID && tileID < 16) enemy.flip(enemy.getVelX() < 0);
+            if (Tile.isTile(tileID)) enemy.flip(enemy.getVelX() < 0);
 
             tileID = level.get(coordinateX / Constants.tileSize)[coordinateY / Constants.tileSize + 1];
-            if (0 < tileID && tileID < 16) enemy.flip(enemy.getVelX() < 0);
+            if (Tile.isTile(tileID)) enemy.flip(enemy.getVelX() < 0);
 
             tileID = level.get(coordinateX / Constants.tileSize)[coordinateY / Constants.tileSize + 2];
             if (tileID == 0) enemy.flip(enemy.getVelX() < 0);
