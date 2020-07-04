@@ -28,7 +28,7 @@ class LevelCreator {
         this.toilet_sprites = toilet_sprites;
         spriteSize = tileSprites.getWidth() / 5;
         spriteFrame = new Rect(0, 0, spriteSize, spriteSize);
-        tilePosition = new Rect(0, 0, Constants.tileSize, Constants.tileSize);  //allow tiles to overlap to get rid of border
+        tilePosition = new Rect(0, 0, Constants.tileSize, Constants.tileSize);
         enemiesInstantiated = new ArrayList<>();
     }
 

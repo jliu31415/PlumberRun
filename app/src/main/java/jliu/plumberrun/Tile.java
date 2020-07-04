@@ -19,18 +19,12 @@ class Tile extends CollisionObject {
 
     @Override
     void setBounds() {
-        if (tileID > 0 && tileID <= 7)  //full tile
+        if (tileID > 0 && tileID <= 10)  //full tile
             bounds = new float[]{posX, posY, posX + tileSize, posY, posX + tileSize, posY + tileSize, posX, posY + tileSize};
-        else if (tileID == 8) //slope up
+        else if (tileID == 11) //slope up
             bounds = new float[]{posX, posY + tileSize, posX + tileSize, posY, posX + tileSize, posY + tileSize};
-        else if (tileID == 9)   //slope down
+        else if (tileID == 12)   //slope down
             bounds = new float[]{posX, posY, posX + tileSize, posY + tileSize, posX, posY + tileSize};
-        else if (tileID == 10)   //rounded left
-            bounds = new float[]{posX, posY, posX + tileSize, posY, posX + tileSize, posY + tileSize,
-                    posX + .25f * tileSize, posY + .75f * tileSize};
-        else if (tileID == 11)   //rounded right
-            bounds = new float[]{posX, posY, posX + tileSize, posY, posX + .75f * tileSize, posY + .75f * tileSize,
-                    posX + tileSize, posY + tileSize};
         else if (tileID <= 15)  //half tile
             bounds = new float[]{posX, posY, posX + tileSize, posY, posX + tileSize, posY + .5f * tileSize, posX, posY + .5f * tileSize};
         else throw new IllegalArgumentException("Invalid Tile ID");
@@ -63,16 +57,12 @@ class Tile extends CollisionObject {
     static String getFlushAttribute(int tileID) {
         //encoding starting from top edge, CW
         //0 = no edge, 1 = full edge, 2 = incomplete edge
-        if (tileID > 0 && tileID <= 7)  //full tile
+        if (tileID > 0 && tileID <= 10)  //full tile
             return "1111";
-        else if (tileID == 8) //slope up
+        else if (tileID == 11) //slope up
             return "0110";
-        else if (tileID == 9)   //slope down
+        else if (tileID == 12)   //slope down
             return "0011";
-        else if (tileID == 10)   //rounded left
-            return "1100";
-        else if (tileID == 11)   //rounded right
-            return "1001";
         else if (tileID <= 15)  //half tile
             return "0202";
         return "";

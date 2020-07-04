@@ -44,14 +44,14 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         surfaceHolder.addCallback(this);
 
         Bitmap plumber_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.plumber_sprites);
-        Bitmap tile_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.tile_sprites);
+        Bitmap grass_tile_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.grass_tile_sprites);
         Bitmap flag_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.flag_sprites);
         Bitmap toilet_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.toilet_sprites);
         Bitmap plunger_sprite = BitmapFactory.decodeResource(getResources(), R.drawable.plunger_sprite);
 
         this.levelID = levelID;
         gameLoop = new GameLoop(this, surfaceHolder);
-        levelCreator = new LevelCreator(this, tile_sprites, flag_sprites, toilet_sprites);
+        levelCreator = new LevelCreator(this, grass_tile_sprites, flag_sprites, toilet_sprites);
         player = new Player(plumber_sprites);
         plunger = new PlungerType(plunger_sprite, player);
         plungers = new ArrayList<>();
