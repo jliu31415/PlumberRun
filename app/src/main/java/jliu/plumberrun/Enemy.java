@@ -3,6 +3,7 @@ package jliu.plumberrun;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.Rect;
 
@@ -16,6 +17,8 @@ class Enemy extends CollisionObject {
     private double velX = -Constants.enemySpeed;    //enemy starts by moving left
     private int frameCount = 0, frameIncrement = 1, pauseCount = 1;
     private boolean flipped = false;
+    private boolean fading = false;
+    private Paint opacity;
 
     Enemy(Bitmap toiletSprites, double posX, double posY) {
         this.toiletSprites = toiletSprites;
@@ -28,13 +31,17 @@ class Enemy extends CollisionObject {
         spriteSize = toiletSprites.getWidth() / 5;
         spriteFrame = new Rect(0, 0, spriteSize, spriteSize);
         setBounds();
+        opacity = new Paint();
+        opacity.setAlpha(255);
     }
 
     void draw(Canvas canvas) {
         if (flipped)
-            canvas.drawBitmap(mirroredSprites, spriteFrame, enemyPosition, null);
+            if (fading) canvas.drawBitmap(mirroredSprites, spriteFrame, enemyPosition, opacity);
+            else canvas.drawBitmap(mirroredSprites, spriteFrame, enemyPosition, null);
         else {
-            canvas.drawBitmap(toiletSprites, spriteFrame, enemyPosition, null);
+            if (fading) canvas.drawBitmap(toiletSprites, spriteFrame, enemyPosition, opacity);
+            else canvas.drawBitmap(toiletSprites, spriteFrame, enemyPosition, null);
         }
     }
 
@@ -50,6 +57,9 @@ class Enemy extends CollisionObject {
         } else {
             spriteFrame.offsetTo(frameCount * spriteSize, 0);
         }
+
+        if (fading && opacity.getAlpha() > 0)
+            opacity.setAlpha(Math.max(0, opacity.getAlpha() - 10));
 
         offSetPosition((int) velX, 0);
     }
@@ -95,6 +105,16 @@ class Enemy extends CollisionObject {
             if (flipped) velX = Math.abs(velX);
             else velX = -Math.abs(velX);
         }
+    }
+
+    void fade() {
+        fading = true;
+        velX = 0;
+        frameIncrement = 0;
+    }
+
+    boolean isDead() {
+        return opacity.getAlpha() == 0;
     }
 
     double getVelX() {

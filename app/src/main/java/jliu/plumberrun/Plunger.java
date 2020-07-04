@@ -17,7 +17,7 @@ class Plunger extends CollisionObject {
     private float pivotX, pivotY;  //image rotation pivot coordinates
     private static final int plungerHeight = Constants.plungerHeight;
     private final double plungerMaxSpeed = Constants.plungerSpeed;
-    private final double gravity = Constants.projectileGravity;
+    private double gravity = Constants.projectileGravity;
     private double velX, velY;
     private double plungerSpeed = 0;   //current plunger speed
     private Point plungerOffset;   //offset plunger to player's hand
@@ -26,7 +26,7 @@ class Plunger extends CollisionObject {
     private float aim, angle, snapToAngle;
     private double power = 1;   //pull back more for more power; [.5, 1]
     private int airTime = 0;
-    private boolean canFire = true, fired = false, sticking = false, collided = false, falling = false;
+    private boolean canFire = true, fired = false, sticking = false, collided = false, falling = false, fading = false;
     private final Paint white, opacity;
 
     Plunger(Bitmap plungerSprite, Player player, float touchX, float touchY) {
@@ -49,8 +49,11 @@ class Plunger extends CollisionObject {
 
     void draw(Canvas canvas) {
         canvas.rotate((float) Math.toDegrees(-angle), pivotX, pivotY);
-        if (canFire || fired) canvas.drawBitmap(plungerSprite, null, plungerPosition, null);
-        else canvas.drawBitmap(plungerSprite, null, plungerPosition, opacity);
+        if ((canFire || fired) && !fading) {
+            canvas.drawBitmap(plungerSprite, null, plungerPosition, null);
+        } else {
+            canvas.drawBitmap(plungerSprite, null, plungerPosition, opacity);
+        }
         canvas.rotate((float) Math.toDegrees(angle), pivotX, pivotY);
 
         //draw arc
@@ -98,9 +101,12 @@ class Plunger extends CollisionObject {
             } else {
                 velX = plungerSpeed * Math.cos(aim);
                 velY = Math.max((plungerSpeed * Math.sin(aim) + gravity * airTime++), -plungerMaxSpeed / 2);
-                //angle unchanged when falling
+                //angle unchanged when falling or fading
                 angle = plungerSpeed == 0 ? angle : (float) Math.atan(velY / velX);
                 if (velX < 0) angle += Math.PI;
+
+                if (fading && opacity.getAlpha() > 0)
+                    opacity.setAlpha(Math.max(0, opacity.getAlpha() - 10));
             }
         }
 
@@ -187,6 +193,15 @@ class Plunger extends CollisionObject {
         plungerSpeed = 0;
     }
 
+    void fade() {
+        if (!fading) {
+            opacity.setAlpha(255);
+            fading = true;
+            plungerSpeed = 0;
+            gravity = 0;
+        }
+    }
+
     void setEnd(float endX, float endY) {
         this.endX = endX;
         this.endY = endY;
@@ -207,7 +222,7 @@ class Plunger extends CollisionObject {
     }
 
     boolean outOfPlay() {
-        return plungerPosition.centerY() > Game.cameraFrame.bottom + plungerHeight
+        return opacity.getAlpha() == 0 || plungerPosition.centerY() > Game.cameraFrame.bottom + plungerHeight
                 || plungerPosition.centerX() < Game.cameraFrame.left - plungerHeight;
     }
 

@@ -215,8 +215,10 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                         } else {
                             for (int j = 0; j < enemies.size(); j++) {
                                 if (plungers.get(i).hasFired() &&
-                                        levelCreator.updateCollisions(plungers.get(i), enemies.get(j), false))
-                                    enemies.remove(j--);
+                                        levelCreator.updateCollisions(plungers.get(i), enemies.get(j), false)) {
+                                    plungers.get(i).fade();
+                                    enemies.get(j).fade();
+                                }
                             }
 
                         }
@@ -230,8 +232,12 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
             }
 
             for (int i = 0; i < enemies.size(); i++) {
-                enemies.get(i).update();
-                levelCreator.setEnemyMovement(enemies.get(i));
+                if (enemies.get(i).isDead()) {
+                    enemies.remove(i--);
+                } else {
+                    enemies.get(i).update();
+                    levelCreator.setEnemyMovement(enemies.get(i));
+                }
             }
         }
     }
