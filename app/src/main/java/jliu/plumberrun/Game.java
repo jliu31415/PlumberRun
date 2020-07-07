@@ -8,10 +8,12 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.os.Build;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 
 import java.io.InputStream;
@@ -32,11 +34,13 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     private Rect jumpButton;
     private Rect slowMotionBar;
     private Paint white;
+    private int fade = 255;
     private long startTime = 0;
     private double slowDuration = 1500;
     private boolean slowMotion = false;
     private boolean levelStarted = false;
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     Game(Context context, int levelID) {
         super(context);
         setFocusable(true);
@@ -183,6 +187,8 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
             canvas.drawRect(bar, white);
             canvas.translate(-slowMotionBar.left, -slowMotionBar.top);
         }
+
+        if (fade > 0) canvas.drawColor(fade << 24);
     }
 
     void update() {
@@ -239,6 +245,8 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                     levelCreator.setEnemyMovement(enemies.get(i));
                 }
             }
+        } else {
+            if ((fade -= 16) < 0) fade = 0;
         }
     }
 

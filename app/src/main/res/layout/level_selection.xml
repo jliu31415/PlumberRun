@@ -22,7 +22,6 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:fontFamily="@font/audiowide"
-            android:text="@string/test"
             android:textColor="#673AB7"
             android:textSize="36sp" />
 
