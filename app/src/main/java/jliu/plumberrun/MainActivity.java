@@ -6,8 +6,8 @@ import android.transition.Scene;
 import android.transition.TransitionManager;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.AlphaAnimation;
 import android.view.animation.AnimationSet;
+import android.view.animation.ScaleAnimation;
 import android.widget.Button;
 import android.widget.ImageView;
 
@@ -22,15 +22,15 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity {
     private AppCompatActivity context;
     private ViewGroup root;
-    private ArrayList<String> levelNames;
 
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         context = this;
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         root = findViewById(R.id.root_container);
+
         TransitionManager.go(Scene.getSceneForLayout(root, R.layout.title_screen, context));
 
         Button play = findViewById(R.id.play);
@@ -43,17 +43,14 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void setLevelNames() {
-        levelNames = new ArrayList<>();
+    private void initRecyclerView() {
+        //set level names
+        ArrayList<String> levelNames = new ArrayList<>();
         levelNames.add("Level 1");
         levelNames.add("Level 2");
         levelNames.add("Level 3");
         levelNames.add("Level 4");
         levelNames.add("Level 5");
-    }
-
-    private void initRecyclerView() {
-        setLevelNames();
 
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
         LinearLayoutManager layoutManager = new LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false);
@@ -70,75 +67,98 @@ public class MainActivity extends AppCompatActivity {
             @RequiresApi(api = Build.VERSION_CODES.KITKAT)
             @Override
             public void onClick(View v) {
-                TransitionManager.go(Scene.getSceneForLayout(root, R.layout.loading_transition, context));
-
-                new Thread(new Runnable() {
-                    private final LoadAnim load = new LoadAnim();
-
+                runWithLoadAnim(new Runnable() {
+                    @RequiresApi(api = Build.VERSION_CODES.O)
                     @Override
                     public void run() {
-                        load.start();
-                        synchronized (load) {
-                            try {
-                                load.wait();
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                        beginGame();
-                    }
-                }).start();
+                        TransitionManager.go(Scene.getSceneForLayout(root, R.layout.game_view, context));
+                        final Game currentGame = findViewById(R.id.game_view);
+                        currentGame.setLevel(0);
 
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                synchronized (currentGame) {
+                                    while (!currentGame.isDone()) {
+                                        try {
+                                            currentGame.wait();
+                                        } catch (InterruptedException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                }
+
+                                currentGame.endGameLoop();
+                                context.runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        TransitionManager.go(Scene.getSceneForLayout(root, R.layout.recycler_view, context));
+                                        initRecyclerView();
+                                    }
+                                });
+                            }
+                        }).start();
+                    }
+                });
             }
         });
     }
 
-    private void beginGame() {
-        context.runOnUiThread(new Runnable() {
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    private void runWithLoadAnim(final Runnable changeLayout) {
+        TransitionManager.go(Scene.getSceneForLayout(root, R.layout.loading_transition, context));
+
+        new Thread(new Runnable() {
+            private final LoadAnim load = new LoadAnim();
+
             @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
             public void run() {
-                setContentView(new Game(context, 0));
+                load.start();
+                synchronized (load) {
+                    try {
+                        load.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                context.runOnUiThread(changeLayout);
             }
-        });
+        }).start();
     }
 
     class LoadAnim extends Thread {
-        private int offset = 100, numCycles = 1;
-
         @Override
         public void run() {
-            ImageView image = null;
-
-            while (numCycles-- > 0) {
-                for (int i = 1; i <= 6; i++) {
-                    switch (i % 6) {
-                        case 0:
-                            image = findViewById(R.id.plunger1);
-                            break;
-                        case 1:
-                            image = findViewById(R.id.plunger2);
-                            break;
-                        case 2:
-                            image = findViewById(R.id.plunger3);
-                            break;
-                        case 3:
-                            image = findViewById(R.id.plunger4);
-                            break;
-                        case 4:
-                            image = findViewById(R.id.plunger5);
-                            break;
-                        case 5:
-                            image = findViewById(R.id.plunger6);
-                            break;
-                    }
-
-                    image.startAnimation(getFadeAnim(i + 3));
+            int duration = 500, numCycles = 1;
+            ImageView image = findViewById(R.id.plunger);
+            AnimationSet animSet = new AnimationSet(false);
+            while (image.getWidth() * image.getHeight() == 0) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
+            }
+
+            ScaleAnimation s1 = new ScaleAnimation(-1, 1, 1, 1,
+                    (float) Math.ceil(image.getWidth() / 2.0), (float) Math.ceil(image.getHeight() / 2.0));
+            ScaleAnimation s2 = new ScaleAnimation(-1, 1, 1, 1,
+                    (float) Math.ceil(image.getWidth() / 2.0), (float) Math.ceil(image.getHeight() / 2.0));
+            s1.setStartOffset(duration);
+            s2.setStartOffset(2 * duration);
+            animSet.addAnimation(s1);
+            animSet.addAnimation(s2);
+            animSet.setDuration(duration);
+            animSet.setFillAfter(true);
+
+            for (int i = 0; i < numCycles; i++) {
+                image.startAnimation(animSet);
 
                 while (!image.getAnimation().hasEnded()) {
                     try {
-                        Thread.sleep(offset);
+                        Thread.sleep(100);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -148,18 +168,6 @@ public class MainActivity extends AppCompatActivity {
             synchronized (this) {
                 notify();
             }
-        }
-
-        private AnimationSet getFadeAnim(int index) {
-            //duration of animation is 2 * offset
-            AnimationSet s = new AnimationSet(false);
-            s.addAnimation(new AlphaAnimation(0, 1));
-            s.addAnimation(new AlphaAnimation(1, 0));
-            s.getAnimations().get(0).setStartOffset(index * offset);
-            s.getAnimations().get(1).setStartOffset((index + 2) * offset);
-            s.setDuration(2 * offset);
-            s.setFillAfter(true);
-            return s;
         }
     }
 }

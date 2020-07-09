@@ -12,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_margin="50dp"
-        app:cardBackgroundColor="#2196F3"
+        app:cardBackgroundColor="@color/blue"
         app:cardElevation="10dp"
         card_view:cardCornerRadius="20dp">
 
@@ -21,8 +21,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:fontFamily="@font/audiowide"
-            android:textColor="#673AB7"
+            android:fontFamily="@font/chelsea_market"
+            android:text="@string/level_name"
+            android:textColor="@color/white"
             android:textSize="36sp" />
 
     </androidx.cardview.widget.CardView>

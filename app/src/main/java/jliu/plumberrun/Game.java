@@ -9,10 +9,12 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.Build;
+import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 
@@ -24,7 +26,6 @@ import java.util.Scanner;
 class Game extends SurfaceView implements SurfaceHolder.Callback {
     private final GameLoop gameLoop;
     private ArrayList<Integer[]> level;
-    private final int levelID;
     private final LevelCreator levelCreator;
     private final Player player;
     private final PlungerType plunger;
@@ -33,16 +34,18 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     public static Rect cameraFrame;
     private Rect jumpButton;
     private Rect slowMotionBar;
+    private final Object lock;
     private Paint white;
     private int fade = 255;
     private long startTime = 0;
     private double slowDuration = 1500;
     private boolean slowMotion = false;
-    private boolean levelStarted = false;
+    private boolean levelStarted = false, done = false;
 
+    //must be public for xml file
     @RequiresApi(api = Build.VERSION_CODES.O)
-    Game(Context context, int levelID) {
-        super(context);
+    public Game(Context context, @Nullable AttributeSet attributeSet) {
+        super(context, attributeSet);
         setFocusable(true);
         SurfaceHolder surfaceHolder = getHolder();
         surfaceHolder.addCallback(this);
@@ -53,7 +56,6 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         Bitmap toilet_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.toilet_sprites);
         Bitmap plunger_sprite = BitmapFactory.decodeResource(getResources(), R.drawable.plunger_sprite);
 
-        this.levelID = levelID;
         gameLoop = new GameLoop(this, surfaceHolder);
         levelCreator = new LevelCreator(this, grass_tile_sprites, flag_sprites, toilet_sprites);
         player = new Player(plumber_sprites);
@@ -61,6 +63,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         plungers = new ArrayList<>();
         enemies = new ArrayList<>();
 
+        lock = new Object();
         white = new Paint();
         white.setColor(Color.WHITE);
     }
@@ -111,15 +114,17 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     public boolean onTouchEvent(MotionEvent event) {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                if (!levelStarted) levelStarted = true;
-                else if (jumpButton.contains((int) event.getX(), (int) event.getY())) {
-                    player.setJumpLatch(true);
-                } else if (player.getPosition().left > 0) {
-                    if (plungers.size() == 0 || plungers.get(0).hasFired()) {
-                        player.windUp();
-                        plungers.add(0, plunger.createPlunger(event.getX(), event.getY()));
-                        startTime = System.currentTimeMillis();
-                        slowMotion = true;
+                if (fade == 0) {
+                    if (!levelStarted) levelStarted = true;
+                    else if (jumpButton.contains((int) event.getX(), (int) event.getY())) {
+                        player.setJumpLatch(true);
+                    } else if (player.getPosition().left > 0) {
+                        if (plungers.size() == 0 || plungers.get(0).hasFired()) {
+                            player.windUp();
+                            plungers.add(0, plunger.createPlunger(event.getX(), event.getY()));
+                            startTime = System.currentTimeMillis();
+                            slowMotion = true;
+                        }
                     }
                 }
                 break;
@@ -150,10 +155,10 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         cameraFrame = new Rect(0, 0, canvasX, canvasY);
         jumpButton = new Rect(canvasX / 2, canvasY / 2, canvasX, canvasY);
         slowMotionBar = new Rect(canvasX / 20, canvasY / 20, canvasX / 5, canvasY / 12);
-        level = parseLevel(levelID);
-        levelCreator.initializeLevel(level);
-        player.initialize();
-        gameLoop.start();
+
+        synchronized (lock) {
+            lock.notify();   //allow parseLevel();
+        }
     }
 
     @Override
@@ -200,12 +205,18 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         levelCreator.update();
 
         if (levelStarted) {
+            if (levelCreator.isDone() && fade == 255) {
+                done = true;
+                synchronized (this) {
+                    notify();
+                }
+            }
+
             player.update();
             for (Tile tile : levelCreator.getSurroundingTiles(player.getBounds())) {
                 levelCreator.updateCollisions(player, tile, true);
             }
-            if (levelCreator.checkLevelComplete(player)) gameOver(true);
-            else if (checkPlayerDeath()) gameOver(false);
+            if (!levelCreator.checkLevelComplete(player) && checkPlayerDeath()) resetLevel();
 
             for (int i = 0; i < plungers.size(); i++) {
                 if (plungers.get(i).outOfPlay()) {
@@ -238,30 +249,50 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
             }
 
             for (int i = 0; i < enemies.size(); i++) {
-                if (enemies.get(i).isDead()) {
+                if (enemies.get(i).canRemove()) {
                     enemies.remove(i--);
                 } else {
                     enemies.get(i).update();
                     levelCreator.setEnemyMovement(enemies.get(i));
                 }
             }
+
+            if (levelCreator.isDone() && (fade += Constants.fade) > 255) fade = 255;
         } else {
-            if ((fade -= 16) < 0) fade = 0;
+            if ((fade -= Constants.fade) < 0) fade = 0;
         }
     }
 
-    private void gameOver(boolean levelComplete) {
-        //release plunger
-        onTouchEvent(MotionEvent.obtain(10, 10, MotionEvent.ACTION_UP, 0, 0, 0));
-        if (levelComplete) {
+    void setLevel(final int levelID) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (cameraFrame == null) {
+                    synchronized (lock) {
+                        try {
+                            lock.wait();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                level = parseLevel(levelID);
+                levelCreator.initializeLevel(level);
+                player.initialize();
+                gameLoop.start();
+            }
+        }).start();
+    }
 
-        } else {
-            levelStarted = false;
-            player.initialize();
-            plungers.clear();
-            enemies.clear();
-            levelCreator.reset();
-        }
+    void resetLevel() {
+        //release current plunger
+        onTouchEvent(MotionEvent.obtain(10, 10, MotionEvent.ACTION_UP, 0, 0, 0));
+
+        levelStarted = false;
+        player.initialize();
+        plungers.clear();
+        enemies.clear();
+        levelCreator.reset();
     }
 
     boolean checkPlayerDeath() {
@@ -269,7 +300,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
             return true;
         } else {
             for (Enemy e : enemies) {
-                if (levelCreator.updateCollisions(player, e, false)) {
+                if (!e.isDead() && levelCreator.updateCollisions(player, e, false)) {
                     return true;
                 }
 
@@ -280,5 +311,13 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
     void addEnemy(Enemy enemy) {
         enemies.add(enemy);
+    }
+
+    boolean isDone() {
+        return done;
+    }
+
+    void endGameLoop() {
+        gameLoop.endLoop();
     }
 }

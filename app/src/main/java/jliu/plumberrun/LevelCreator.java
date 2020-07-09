@@ -72,7 +72,7 @@ class LevelCreator {
         //draw fireworks
         if (levelComplete) {
             if (fireworks == null) {
-                fireworks = new ArrayList<>();
+                fireworks = new ArrayList<>(5);
                 for (int i = 0; i < 5; i++) {
                     Paint color = new Paint();
                     color.setColor(Color.rgb((int) (255 * Math.random()), (int) (255 * Math.random()), (int) (255 * Math.random())));
@@ -266,6 +266,10 @@ class LevelCreator {
     void reset() {
         enemiesInstantiated.clear();
         flag = null;
+    }
+
+    boolean isDone() {
+        return fireworks != null && fireworks.size() == 0;
     }
 
     static class FireworkParticle {

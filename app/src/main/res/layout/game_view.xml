@@ -6,10 +6,9 @@
     android:background="@color/primary_dark"
     tools:context=".MainActivity">
 
-    <RelativeLayout
-        android:id="@+id/root_container"
+    <jliu.plumberrun.Game
+        android:id="@+id/game_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-    </RelativeLayout>
+        android:layout_height="match_parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

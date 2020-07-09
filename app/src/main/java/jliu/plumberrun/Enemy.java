@@ -59,7 +59,7 @@ class Enemy extends CollisionObject {
         }
 
         if (fading && opacity.getAlpha() > 0)
-            opacity.setAlpha(Math.max(0, opacity.getAlpha() - 10));
+            opacity.setAlpha(Math.max(0, opacity.getAlpha() - Constants.fade));
 
         offSetPosition((int) velX, 0);
     }
@@ -114,6 +114,10 @@ class Enemy extends CollisionObject {
     }
 
     boolean isDead() {
+        return fading;
+    }
+
+    boolean canRemove() {
         return opacity.getAlpha() == 0;
     }
 

@@ -1,10 +1,12 @@
 package jliu.plumberrun;
 
 final class Constants {
+    static final int fade = 30;
+
     static final int tileSize = 90;
 
     static final int playerSize = tileSize * 2;
-    static final double playerMaxSpeedX = tileSize / 6.0;
+    static final double playerMaxSpeedX = tileSize / 5.0;
     static final double playerJumpVel = tileSize / 2.5;
     static final double playerGravity = -tileSize / 40.0;
 
@@ -18,5 +20,5 @@ final class Constants {
 
     static final double flagHeight = tileSize * 2.5;
     static final double fragmentSize = tileSize / 10.0;   //firework fragments
-    static final double fireworkLaunchVel = tileSize / 2.5;
+    static final double fireworkLaunchVel = tileSize / 3.0;
 }

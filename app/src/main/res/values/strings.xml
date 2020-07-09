@@ -3,4 +3,5 @@
     <string name="play">Play</string>
     <string name="start_level">Start Level</string>
     <string name="plunger">Plunger</string>
+    <string name="level_name">Level Name</string>
 </resources>

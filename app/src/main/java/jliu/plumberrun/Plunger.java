@@ -106,7 +106,7 @@ class Plunger extends CollisionObject {
                 if (velX < 0) angle += Math.PI;
 
                 if (fading && opacity.getAlpha() > 0)
-                    opacity.setAlpha(Math.max(0, opacity.getAlpha() - 10));
+                    opacity.setAlpha(Math.max(0, opacity.getAlpha() - Constants.fade));
             }
         }
 

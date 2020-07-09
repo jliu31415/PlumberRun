@@ -11,51 +11,11 @@
         android:gravity="center">
 
         <ImageView
-            android:id="@+id/plunger1"
+            android:id="@+id/plunger"
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:contentDescription="@string/plunger"
             android:rotation="0"
-            app:srcCompat="@drawable/load_icon" />
-
-        <ImageView
-            android:id="@+id/plunger2"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:contentDescription="@string/plunger"
-            android:rotation="60"
-            app:srcCompat="@drawable/load_icon" />
-
-        <ImageView
-            android:id="@+id/plunger3"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:contentDescription="@string/plunger"
-            android:rotation="120"
-            app:srcCompat="@drawable/load_icon" />
-
-        <ImageView
-            android:id="@+id/plunger4"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:contentDescription="@string/plunger"
-            android:rotation="180"
-            app:srcCompat="@drawable/load_icon" />
-
-        <ImageView
-            android:id="@+id/plunger5"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:contentDescription="@string/plunger"
-            android:rotation="240"
-            app:srcCompat="@drawable/load_icon" />
-
-        <ImageView
-            android:id="@+id/plunger6"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:contentDescription="@string/plunger"
-            android:rotation="300"
             app:srcCompat="@drawable/load_icon" />
 
     </RelativeLayout>

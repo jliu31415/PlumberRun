@@ -75,4 +75,8 @@ class GameLoop extends Thread {
         Log.i("UPS: ", Double.toString(averageUPS));
         Log.i("FPS: ", Double.toString(averageFPS));
     }
+
+    void endLoop() {
+        running = false;
+    }
 }
