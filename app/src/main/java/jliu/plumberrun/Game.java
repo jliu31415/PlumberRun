@@ -31,16 +31,15 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     private final PlungerType plunger;
     private ArrayList<Plunger> plungers;
     private ArrayList<Enemy> enemies;
-    public static Rect cameraFrame;
+    static Rect cameraFrame;
     private Rect jumpButton;
     private Rect slowMotionBar;
     private final Object lock;
     private Paint white;
-    private int fade = 255;
     private long startTime = 0;
     private double slowDuration = 1500;
     private boolean slowMotion = false;
-    private boolean levelStarted = false, done = false;
+    private boolean levelLoading = true, levelStarted = false, done = false;
 
     //must be public for xml file
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -114,7 +113,6 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     public boolean onTouchEvent(MotionEvent event) {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                if (fade == 0) {
                     if (!levelStarted) levelStarted = true;
                     else if (jumpButton.contains((int) event.getX(), (int) event.getY())) {
                         player.setJumpLatch(true);
@@ -126,7 +124,6 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                             slowMotion = true;
                         }
                     }
-                }
                 break;
 
             case MotionEvent.ACTION_MOVE:
@@ -157,7 +154,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         slowMotionBar = new Rect(canvasX / 20, canvasY / 20, canvasX / 5, canvasY / 12);
 
         synchronized (lock) {
-            lock.notify();   //allow parseLevel();
+            lock.notify();   //allow parseLevel() when cameraFrame is initialized;
         }
     }
 
@@ -192,8 +189,6 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
             canvas.drawRect(bar, white);
             canvas.translate(-slowMotionBar.left, -slowMotionBar.top);
         }
-
-        if (fade > 0) canvas.drawColor(fade << 24);
     }
 
     void update() {
@@ -205,10 +200,10 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         levelCreator.update();
 
         if (levelStarted) {
-            if (levelCreator.isDone() && fade == 255) {
+            if (levelCreator.isDone()) {
                 done = true;
                 synchronized (this) {
-                    notify();
+                    notify();   //notify MainActivity that game has finished
                 }
             }
 
@@ -237,7 +232,6 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                                     enemies.get(j).fade();
                                 }
                             }
-
                         }
                     }
                 }
@@ -256,21 +250,17 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                     levelCreator.setEnemyMovement(enemies.get(i));
                 }
             }
-
-            if (levelCreator.isDone() && (fade += Constants.fade) > 255) fade = 255;
-        } else {
-            if ((fade -= Constants.fade) < 0) fade = 0;
         }
     }
 
-    void setLevel(final int levelID) {
+    void loadLevel(final int levelID) {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 while (cameraFrame == null) {
                     synchronized (lock) {
                         try {
-                            lock.wait();
+                            lock.wait();    //wait for cameraFrame initialization
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
@@ -279,7 +269,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                 level = parseLevel(levelID);
                 levelCreator.initializeLevel(level);
                 player.initialize();
-                gameLoop.start();
+                levelLoading = false;
             }
         }).start();
     }
@@ -303,7 +293,6 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                 if (!e.isDead() && levelCreator.updateCollisions(player, e, false)) {
                     return true;
                 }
-
             }
         }
         return false;
@@ -315,6 +304,14 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
     boolean isDone() {
         return done;
+    }
+
+    boolean levelLoading() {
+        return levelLoading;
+    }
+
+    void startGameLoop() {
+        gameLoop.start();
     }
 
     void endGameLoop() {

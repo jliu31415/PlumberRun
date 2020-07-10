@@ -6,6 +6,7 @@ import android.transition.Scene;
 import android.transition.TransitionManager;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AlphaAnimation;
 import android.view.animation.AnimationSet;
 import android.view.animation.ScaleAnimation;
 import android.widget.Button;
@@ -37,6 +38,16 @@ public class MainActivity extends AppCompatActivity {
         play.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                goToLevelSelect();
+            }
+        });
+    }
+
+    private void goToLevelSelect() {
+        context.runOnUiThread(new Runnable() {
+            @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+            @Override
+            public void run() {
                 TransitionManager.go(Scene.getSceneForLayout(root, R.layout.recycler_view, context));
                 initRecyclerView();
             }
@@ -67,17 +78,46 @@ public class MainActivity extends AppCompatActivity {
             @RequiresApi(api = Build.VERSION_CODES.KITKAT)
             @Override
             public void onClick(View v) {
+                TransitionManager.go(Scene.getSceneForLayout(root, R.layout.game_view, context));
+                final Game currentGame = findViewById(R.id.game_view);
+                final ViewGroup loadScreen = findViewById(R.id.load_screen);
+                currentGame.loadLevel(0);
+
+                final LoadLock loadLock = new LoadLock();
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        loadLock.lock(true);
+                        while (currentGame.levelLoading()) {
+                            try {
+                                Thread.sleep(100);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        loadLock.lock(false);
+                    }
+                }).start();
+
                 runWithLoadAnim(new Runnable() {
                     @RequiresApi(api = Build.VERSION_CODES.O)
                     @Override
                     public void run() {
-                        TransitionManager.go(Scene.getSceneForLayout(root, R.layout.game_view, context));
-                        final Game currentGame = findViewById(R.id.game_view);
-                        currentGame.setLevel(0);
-
                         new Thread(new Runnable() {
                             @Override
                             public void run() {
+                                currentGame.startGameLoop();
+
+                                context.runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        AlphaAnimation alpha = new AlphaAnimation(1, 0);
+                                        alpha.setDuration(500);
+                                        alpha.setFillAfter(true);
+                                        loadScreen.startAnimation(alpha);
+                                    }
+                                });
+
                                 synchronized (currentGame) {
                                     while (!currentGame.isDone()) {
                                         try {
@@ -89,27 +129,19 @@ public class MainActivity extends AppCompatActivity {
                                 }
 
                                 currentGame.endGameLoop();
-                                context.runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        TransitionManager.go(Scene.getSceneForLayout(root, R.layout.recycler_view, context));
-                                        initRecyclerView();
-                                    }
-                                });
+                                goToLevelSelect();
                             }
                         }).start();
                     }
-                });
+                }, loadLock);
             }
         });
     }
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-    private void runWithLoadAnim(final Runnable changeLayout) {
-        TransitionManager.go(Scene.getSceneForLayout(root, R.layout.loading_transition, context));
-
+    private void runWithLoadAnim(final Runnable run, final LoadLock loadLock) {
         new Thread(new Runnable() {
-            private final LoadAnim load = new LoadAnim();
+            private final LoadAnim load = new LoadAnim(loadLock);
 
             @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
@@ -123,16 +155,35 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
 
-                context.runOnUiThread(changeLayout);
+                context.runOnUiThread(run);
             }
         }).start();
     }
 
+    static class LoadLock {
+        private boolean locked;
+
+        void lock(boolean locked) {
+            this.locked = locked;
+        }
+
+        boolean isLocked() {
+            return locked;
+        }
+    }
+
     class LoadAnim extends Thread {
+        private LoadLock loadLock;
+
+        LoadAnim(LoadLock loadLock) {
+            this.loadLock = loadLock;
+        }
+
         @Override
         public void run() {
-            int duration = 500, numCycles = 1;
+            int duration = 500;
             ImageView image = findViewById(R.id.plunger);
+
             AnimationSet animSet = new AnimationSet(false);
             while (image.getWidth() * image.getHeight() == 0) {
                 try {
@@ -153,7 +204,7 @@ public class MainActivity extends AppCompatActivity {
             animSet.setDuration(duration);
             animSet.setFillAfter(true);
 
-            for (int i = 0; i < numCycles; i++) {
+            while (loadLock.isLocked()) {
                 image.startAnimation(animSet);
 
                 while (!image.getAnimation().hasEnded()) {

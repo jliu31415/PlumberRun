@@ -6,9 +6,20 @@
     android:background="@color/primary_dark"
     tools:context=".MainActivity">
 
-    <jliu.plumberrun.Game
-        android:id="@+id/game_view"
+    <RelativeLayout
+        android:id="@+id/game_container"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent">
+
+        <jliu.plumberrun.Game
+            android:id="@+id/game_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+    </RelativeLayout>
+
+    <include
+        android:id="@+id/load_screen"
+        layout="@layout/loading_transition" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
