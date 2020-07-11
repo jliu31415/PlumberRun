@@ -26,7 +26,8 @@ class Tile extends CollisionObject {
         else if (tileID == 12)   //slope down
             bounds = new float[]{posX, posY, posX + tileSize, posY + tileSize, posX, posY + tileSize};
         else if (tileID <= 15)  //half tile
-            bounds = new float[]{posX, posY, posX + tileSize, posY, posX + tileSize, posY + .5f * tileSize, posX, posY + .5f * tileSize};
+            bounds = new float[]{posX, posY + .25f * tileSize, posX + tileSize, posY + .25f * tileSize,
+                    posX + tileSize, posY + .75f * tileSize, posX, posY + .75f * tileSize};
         else throw new IllegalArgumentException("Invalid Tile ID");
     }
 

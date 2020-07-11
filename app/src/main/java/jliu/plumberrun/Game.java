@@ -8,6 +8,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
@@ -33,9 +34,10 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     private ArrayList<Enemy> enemies;
     static Rect cameraFrame;
     private Rect jumpButton;
-    private Rect slowMotionBar;
+    private RectF slowMotionBar;
     private final Object lock;
     private Paint white;
+    private Paint typeFace;
     private long startTime = 0;
     private double slowDuration = 1500;
     private boolean slowMotion = false;
@@ -65,6 +67,10 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         lock = new Object();
         white = new Paint();
         white.setColor(Color.WHITE);
+        typeFace = new Paint();
+        typeFace.setTypeface(getResources().getFont(R.font.chelsea_market));
+        typeFace.setTextSize(100);
+        typeFace.setTextAlign(Paint.Align.CENTER);
     }
 
     private ArrayList<Integer[]> parseLevel(int levelID) {
@@ -151,7 +157,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         int canvasY = holder.getSurfaceFrame().bottom;
         cameraFrame = new Rect(0, 0, canvasX, canvasY);
         jumpButton = new Rect(canvasX / 2, canvasY / 2, canvasX, canvasY);
-        slowMotionBar = new Rect(canvasX / 20, canvasY / 20, canvasX / 5, canvasY / 12);
+        slowMotionBar = new RectF(canvasX / 20.0f, canvasY / 20.0f, canvasX / 4.0f, canvasY / 12.0f);
 
         synchronized (lock) {
             lock.notify();   //allow parseLevel() when cameraFrame is initialized;
@@ -184,10 +190,14 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
         if (slowMotion) {
             canvas.translate(slowMotionBar.left, slowMotionBar.top);
-            double ratio = 1 - (System.currentTimeMillis() - startTime) / slowDuration;
-            Rect bar = new Rect(0, 0, (int) (slowMotionBar.width() * ratio), slowMotionBar.height());
-            canvas.drawRect(bar, white);
+            float ratio = (float) (1 - (System.currentTimeMillis() - startTime) / slowDuration);
+            RectF bar = new RectF(0, 0, slowMotionBar.width() * ratio, slowMotionBar.height());
+            canvas.drawRoundRect(bar, bar.height() / 2, bar.height() / 2, white);
             canvas.translate(-slowMotionBar.left, -slowMotionBar.top);
+        }
+
+        if (typeFace.getAlpha() > 0) {
+            canvas.drawText("Touch to Start", cameraFrame.centerX(), cameraFrame.centerY(), typeFace);
         }
     }
 
@@ -250,6 +260,8 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                     levelCreator.setEnemyMovement(enemies.get(i));
                 }
             }
+
+            typeFace.setAlpha(Math.max(typeFace.getAlpha() - Constants.fade, 0));
         }
     }
 

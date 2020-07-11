@@ -20,5 +20,5 @@ final class Constants {
 
     static final double flagHeight = tileSize * 2.5;
     static final double fragmentSize = tileSize / 10.0;   //firework fragments
-    static final double fireworkLaunchVel = tileSize / 3.0;
+    static final double fireworkLaunchVel = tileSize / 2.5;
 }

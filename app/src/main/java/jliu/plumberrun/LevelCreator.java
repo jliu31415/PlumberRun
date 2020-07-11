@@ -286,7 +286,7 @@ class LevelCreator {
             double launchVel = Constants.fireworkLaunchVel;
             if (parent) {
                 velX = 0;
-                velY = launchVel * (1 + .5 * Math.random());
+                velY = launchVel * (1 + .3 * Math.random());
             } else {
                 velX = (launchVel / 3.0) * (Math.random() - .5);
                 velY = (launchVel / 3.0) * (Math.random() - .5);

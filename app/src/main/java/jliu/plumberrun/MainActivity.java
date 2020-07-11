@@ -1,9 +1,12 @@
 package jliu.plumberrun;
 
+import android.annotation.SuppressLint;
+import android.graphics.PorterDuff;
 import android.os.Build;
 import android.os.Bundle;
 import android.transition.Scene;
 import android.transition.TransitionManager;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AlphaAnimation;
@@ -35,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
         TransitionManager.go(Scene.getSceneForLayout(root, R.layout.title_screen, context));
 
         Button play = findViewById(R.id.play);
+        applyButtonEffect(play);
         play.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -74,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
         snapper.attachToRecyclerView(recyclerView);
 
         Button start = findViewById(R.id.start);
+        applyButtonEffect(start);
         start.setOnClickListener(new View.OnClickListener() {
             @RequiresApi(api = Build.VERSION_CODES.KITKAT)
             @Override
@@ -81,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
                 TransitionManager.go(Scene.getSceneForLayout(root, R.layout.game_view, context));
                 final Game currentGame = findViewById(R.id.game_view);
                 final ViewGroup loadScreen = findViewById(R.id.load_screen);
+                loadScreen.bringToFront();
                 currentGame.loadLevel(0);
 
                 final LoadLock loadLock = new LoadLock();
@@ -106,14 +112,15 @@ public class MainActivity extends AppCompatActivity {
                         new Thread(new Runnable() {
                             @Override
                             public void run() {
+                                final AlphaAnimation alpha = new AlphaAnimation(1, 0);
+                                alpha.setDuration(500);
+                                alpha.setFillAfter(true);
+
                                 currentGame.startGameLoop();
 
                                 context.runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        AlphaAnimation alpha = new AlphaAnimation(1, 0);
-                                        alpha.setDuration(500);
-                                        alpha.setFillAfter(true);
                                         loadScreen.startAnimation(alpha);
                                     }
                                 });
@@ -129,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
                                 }
 
                                 currentGame.endGameLoop();
-                                goToLevelSelect();
+                                //goToLevelSelect();
                             }
                         }).start();
                     }
@@ -204,7 +211,7 @@ public class MainActivity extends AppCompatActivity {
             animSet.setDuration(duration);
             animSet.setFillAfter(true);
 
-            while (loadLock.isLocked()) {
+            do {
                 image.startAnimation(animSet);
 
                 while (!image.getAnimation().hasEnded()) {
@@ -214,11 +221,32 @@ public class MainActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
                 }
-            }
+            } while (loadLock.isLocked());
 
             synchronized (this) {
                 notify();
             }
         }
+    }
+
+    private void applyButtonEffect(View button) {
+        button.setOnTouchListener(new View.OnTouchListener() {
+            @SuppressLint("ClickableViewAccessibility")
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN: {
+                        v.getBackground().setColorFilter(getResources().getColor(R.color.grey), PorterDuff.Mode.SRC_ATOP);
+                        v.invalidate();
+                        break;
+                    }
+                    case MotionEvent.ACTION_UP: {
+                        v.getBackground().clearColorFilter();
+                        v.invalidate();
+                        break;
+                    }
+                }
+                return false;
+            }
+        });
     }
 }
