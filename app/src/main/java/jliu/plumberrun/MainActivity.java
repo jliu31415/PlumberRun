@@ -10,7 +10,9 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
+import android.view.animation.BounceInterpolator;
 import android.view.animation.ScaleAnimation;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -86,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
                 TransitionManager.go(Scene.getSceneForLayout(root, R.layout.game_view, context));
                 final Game currentGame = findViewById(R.id.game_view);
                 final ViewGroup loadScreen = findViewById(R.id.load_screen);
-                loadScreen.bringToFront();
+                loadScreen.setVisibility(View.VISIBLE);
                 currentGame.loadLevel(0);
 
                 final LoadLock loadLock = new LoadLock();
@@ -112,21 +114,20 @@ public class MainActivity extends AppCompatActivity {
                         new Thread(new Runnable() {
                             @Override
                             public void run() {
-                                final AlphaAnimation alpha = new AlphaAnimation(1, 0);
-                                alpha.setDuration(500);
-                                alpha.setFillAfter(true);
-
                                 currentGame.startGameLoop();
 
                                 context.runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
+                                        AlphaAnimation alpha = new AlphaAnimation(1, 0);
+                                        alpha.setDuration(500);
+                                        alpha.setFillAfter(true);
                                         loadScreen.startAnimation(alpha);
                                     }
                                 });
 
                                 synchronized (currentGame) {
-                                    while (!currentGame.isDone()) {
+                                    while (currentGame.gameInProgress()) {
                                         try {
                                             currentGame.wait();
                                         } catch (InterruptedException e) {
@@ -135,7 +136,20 @@ public class MainActivity extends AppCompatActivity {
                                     }
                                 }
 
-                                currentGame.endGameLoop();
+                                context.runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        ScaleAnimation scale = new ScaleAnimation(0, 1, 0, 1,
+                                                Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+                                        scale.setInterpolator(new BounceInterpolator());
+                                        scale.setDuration(1000);
+                                        scale.setFillAfter(true);
+                                        ImageView levelComplete = findViewById(R.id.level_complete);
+                                        levelComplete.setVisibility(View.VISIBLE);
+                                        levelComplete.startAnimation(scale);
+                                    }
+                                });
+
                                 //goToLevelSelect();
                             }
                         }).start();

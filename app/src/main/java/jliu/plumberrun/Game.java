@@ -41,7 +41,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     private long startTime = 0;
     private double slowDuration = 1500;
     private boolean slowMotion = false;
-    private boolean levelLoading = true, levelStarted = false, done = false;
+    private boolean levelLoading = true, levelStarted = false, gameInProgress = true;
 
     //must be public for xml file
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -210,18 +210,16 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         levelCreator.update();
 
         if (levelStarted) {
-            if (levelCreator.isDone()) {
-                done = true;
-                synchronized (this) {
-                    notify();   //notify MainActivity that game has finished
-                }
-            }
-
             player.update();
             for (Tile tile : levelCreator.getSurroundingTiles(player.getBounds())) {
                 levelCreator.updateCollisions(player, tile, true);
             }
-            if (!levelCreator.checkLevelComplete(player) && checkPlayerDeath()) resetLevel();
+            if (levelCreator.checkLevelComplete(player)) {
+                synchronized (this) {
+                    gameInProgress = false;
+                    notify();   //notify MainActivity that level is complete
+                }
+            } else if (checkPlayerDeath()) resetLevel();
 
             for (int i = 0; i < plungers.size(); i++) {
                 if (plungers.get(i).outOfPlay()) {
@@ -314,12 +312,12 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         enemies.add(enemy);
     }
 
-    boolean isDone() {
-        return done;
-    }
-
     boolean levelLoading() {
         return levelLoading;
+    }
+
+    boolean gameInProgress() {
+        return gameInProgress;
     }
 
     void startGameLoop() {

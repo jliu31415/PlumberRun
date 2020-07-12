@@ -268,10 +268,6 @@ class LevelCreator {
         flag = null;
     }
 
-    boolean isDone() {
-        return fireworks != null && fireworks.size() == 0;
-    }
-
     static class FireworkParticle {
         private double posX, posY;
         private double velX, velY;
@@ -286,10 +282,10 @@ class LevelCreator {
             double launchVel = Constants.fireworkLaunchVel;
             if (parent) {
                 velX = 0;
-                velY = launchVel * (1 + .3 * Math.random());
+                velY = launchVel;
             } else {
-                velX = (launchVel / 3.0) * (Math.random() - .5);
-                velY = (launchVel / 3.0) * (Math.random() - .5);
+                velX = (launchVel / 2.0) * (Math.random() - .5);
+                velY = (launchVel / 2.0) * (Math.random() - .5);
             }
 
             this.color = color;
