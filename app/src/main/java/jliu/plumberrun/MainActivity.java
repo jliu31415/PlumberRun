@@ -1,7 +1,7 @@
 package jliu.plumberrun;
 
 import android.annotation.SuppressLint;
-import android.graphics.PorterDuff;
+import android.graphics.LightingColorFilter;
 import android.os.Build;
 import android.os.Bundle;
 import android.transition.Scene;
@@ -36,17 +36,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         root = findViewById(R.id.root_container);
-
-        TransitionManager.go(Scene.getSceneForLayout(root, R.layout.title_screen, context));
-
-        Button play = findViewById(R.id.play);
-        applyButtonEffect(play);
-        play.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                goToLevelSelect();
-            }
-        });
+        goToLevelSelect();
     }
 
     private void goToLevelSelect() {
@@ -91,11 +81,31 @@ public class MainActivity extends AppCompatActivity {
                 loadScreen.setVisibility(View.VISIBLE);
                 currentGame.loadLevel(0);
 
+                final Button replayButton = findViewById(R.id.replay_button);
+                applyButtonEffect(replayButton);
+                replayButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        scaleAnim(findViewById(R.id.level_complete), false);
+                        currentGame.resetLevel();
+                        startLevelCompleteThread(currentGame);
+                    }
+                });
+
+                final Button menuButton = findViewById(R.id.menu_button);
+                applyButtonEffect(menuButton);
+                menuButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        currentGame.endGameLoop();
+                        goToLevelSelect();
+                    }
+                });
+
                 final LoadLock loadLock = new LoadLock();
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        loadLock.lock(true);
                         while (currentGame.levelLoading()) {
                             try {
                                 Thread.sleep(100);
@@ -103,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
                                 e.printStackTrace();
                             }
                         }
-                        loadLock.lock(false);
+                        loadLock.lock();
                     }
                 }).start();
 
@@ -111,50 +121,50 @@ public class MainActivity extends AppCompatActivity {
                     @RequiresApi(api = Build.VERSION_CODES.O)
                     @Override
                     public void run() {
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                currentGame.startGameLoop();
+                        AlphaAnimation alpha = new AlphaAnimation(1, 0);
+                        alpha.setDuration(500);
+                        alpha.setFillAfter(true);
+                        loadScreen.startAnimation(alpha);
 
-                                context.runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        AlphaAnimation alpha = new AlphaAnimation(1, 0);
-                                        alpha.setDuration(500);
-                                        alpha.setFillAfter(true);
-                                        loadScreen.startAnimation(alpha);
-                                    }
-                                });
-
-                                synchronized (currentGame) {
-                                    while (currentGame.gameInProgress()) {
-                                        try {
-                                            currentGame.wait();
-                                        } catch (InterruptedException e) {
-                                            e.printStackTrace();
-                                        }
-                                    }
-                                }
-
-                                context.runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        ScaleAnimation scale = new ScaleAnimation(0, 1, 0, 1,
-                                                Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
-                                        scale.setInterpolator(new BounceInterpolator());
-                                        scale.setDuration(1000);
-                                        scale.setFillAfter(true);
-                                        ImageView levelComplete = findViewById(R.id.level_complete);
-                                        levelComplete.setVisibility(View.VISIBLE);
-                                        levelComplete.startAnimation(scale);
-                                    }
-                                });
-
-                                //goToLevelSelect();
-                            }
-                        }).start();
+                        currentGame.startGameLoop();
+                        startLevelCompleteThread(currentGame);
                     }
                 }, loadLock);
+            }
+        });
+    }
+
+    private void startLevelCompleteThread(final Game currentGame) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                synchronized (currentGame) {
+                    while (currentGame.gameInProgress()) {
+                        try {
+                            currentGame.wait();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+
+                scaleAnim(findViewById(R.id.level_complete), true);
+            }
+        }).start();
+    }
+
+    private void scaleAnim(final View v, final boolean in) {
+        context.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                int temp = in ? 0 : 1;
+                ScaleAnimation scale = new ScaleAnimation(temp, 1 - temp, temp, 1 - temp,
+                        Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+                scale.setInterpolator(new BounceInterpolator());
+                scale.setDuration(1000);
+                scale.setFillAfter(true);
+                if (in) v.setVisibility(View.VISIBLE);
+                v.startAnimation(scale);
             }
         });
     }
@@ -184,8 +194,12 @@ public class MainActivity extends AppCompatActivity {
     static class LoadLock {
         private boolean locked;
 
-        void lock(boolean locked) {
-            this.locked = locked;
+        LoadLock() {
+            locked = true;
+        }
+
+        void lock() {
+            this.locked = false;
         }
 
         boolean isLocked() {
@@ -249,7 +263,7 @@ public class MainActivity extends AppCompatActivity {
             public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN: {
-                        v.getBackground().setColorFilter(getResources().getColor(R.color.grey), PorterDuff.Mode.SRC_ATOP);
+                        v.getBackground().setColorFilter(new LightingColorFilter(0xffcccccc, 0x000000));
                         v.invalidate();
                         break;
                     }

@@ -39,7 +39,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     private Paint white;
     private Paint typeFace;
     private long startTime = 0;
-    private double slowDuration = 1500;
+    private double slowDuration = 1000;
     private boolean slowMotion = false;
     private boolean levelLoading = true, levelStarted = false, gameInProgress = true;
 
@@ -157,7 +157,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         int canvasY = holder.getSurfaceFrame().bottom;
         cameraFrame = new Rect(0, 0, canvasX, canvasY);
         jumpButton = new Rect(canvasX / 2, canvasY / 2, canvasX, canvasY);
-        slowMotionBar = new RectF(canvasX / 20.0f, canvasY / 20.0f, canvasX / 4.0f, canvasY / 12.0f);
+        slowMotionBar = new RectF(canvasX / 20.0f, canvasY / 20.0f, canvasX / 3.0f, canvasY / 10.0f);
 
         synchronized (lock) {
             lock.notify();   //allow parseLevel() when cameraFrame is initialized;
@@ -219,7 +219,9 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                     gameInProgress = false;
                     notify();   //notify MainActivity that level is complete
                 }
-            } else if (checkPlayerDeath()) resetLevel();
+            } else if (checkPlayerDeath()) {
+                resetLevel();
+            }
 
             for (int i = 0; i < plungers.size(); i++) {
                 if (plungers.get(i).outOfPlay()) {
@@ -289,10 +291,12 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         onTouchEvent(MotionEvent.obtain(10, 10, MotionEvent.ACTION_UP, 0, 0, 0));
 
         levelStarted = false;
+        gameInProgress = true;
         player.initialize();
         plungers.clear();
         enemies.clear();
         levelCreator.reset();
+        typeFace.setAlpha(255);
     }
 
     boolean checkPlayerDeath() {

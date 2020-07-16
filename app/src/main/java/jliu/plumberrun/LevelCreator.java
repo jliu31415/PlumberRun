@@ -73,10 +73,10 @@ class LevelCreator {
         if (levelComplete) {
             if (fireworks == null) {
                 fireworks = new ArrayList<>(5);
-                for (int i = 0; i < 5; i++) {
+                for (int i = -1; i <= 1; i += 2) {
                     Paint color = new Paint();
                     color.setColor(Color.rgb((int) (255 * Math.random()), (int) (255 * Math.random()), (int) (255 * Math.random())));
-                    fireworks.add(new FireworkParticle(Game.cameraFrame.left + Game.cameraFrame.width() / 5.0 * (i + Math.random()),
+                    fireworks.add(new FireworkParticle(Game.cameraFrame.centerX() + i * Game.cameraFrame.width() / 3.0,
                             Game.cameraFrame.height(), true, color));
                 }
             }
@@ -266,6 +266,8 @@ class LevelCreator {
     void reset() {
         enemiesInstantiated.clear();
         flag = null;
+        fireworks = null;
+        levelComplete = false;
     }
 
     static class FireworkParticle {
@@ -284,8 +286,8 @@ class LevelCreator {
                 velX = 0;
                 velY = launchVel;
             } else {
-                velX = (launchVel / 2.0) * (Math.random() - .5);
-                velY = (launchVel / 2.0) * (Math.random() - .5);
+                velX = launchVel * (Math.random() - .5);
+                velY = launchVel * (Math.random() - .5);
             }
 
             this.color = color;
