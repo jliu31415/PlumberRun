@@ -12,11 +12,12 @@ import android.view.ViewGroup;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
-import android.view.animation.BounceInterpolator;
+import android.view.animation.DecelerateInterpolator;
 import android.view.animation.ScaleAnimation;
-import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -69,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
         LinearSnapHelper snapper = new LinearSnapHelper();
         snapper.attachToRecyclerView(recyclerView);
 
-        Button start = findViewById(R.id.start);
+        ImageButton start = findViewById(R.id.start);
         applyButtonEffect(start);
         start.setOnClickListener(new View.OnClickListener() {
             @RequiresApi(api = Build.VERSION_CODES.KITKAT)
@@ -77,32 +78,46 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 TransitionManager.go(Scene.getSceneForLayout(root, R.layout.game_view, context));
                 final Game currentGame = findViewById(R.id.game_view);
-                final ViewGroup loadScreen = findViewById(R.id.load_screen);
-                loadScreen.setVisibility(View.VISIBLE);
-                currentGame.loadLevel(0);
+                final LoadLock loadLock = new LoadLock();
+                final ImageButton replayButton = findViewById(R.id.replay_button);
+                final ImageButton menuButton = findViewById(R.id.menu_button);
 
-                final Button replayButton = findViewById(R.id.replay_button);
+                runWithLoadAnim(new Runnable() {
+                    @RequiresApi(api = Build.VERSION_CODES.O)
+                    @Override
+                    public void run() {
+                        currentGame.startGameLoop();
+                        startLevelCompleteThread(currentGame, replayButton, menuButton);
+                    }
+                }, loadLock, false, true);
+
                 applyButtonEffect(replayButton);
                 replayButton.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         scaleAnim(findViewById(R.id.level_complete), false);
                         currentGame.resetLevel();
-                        startLevelCompleteThread(currentGame);
+                        startLevelCompleteThread(currentGame, replayButton, menuButton);
                     }
                 });
 
-                final Button menuButton = findViewById(R.id.menu_button);
                 applyButtonEffect(menuButton);
                 menuButton.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        currentGame.endGameLoop();
-                        goToLevelSelect();
+                        replayButton.setClickable(false);
+                        menuButton.setClickable(false);
+                        runWithLoadAnim(new Runnable() {
+                            @Override
+                            public void run() {
+                                currentGame.endGameLoop();
+                                goToLevelSelect();
+                            }
+                        }, null, true, false);
                     }
                 });
 
-                final LoadLock loadLock = new LoadLock();
+                currentGame.loadLevel(0);
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
@@ -116,28 +131,16 @@ public class MainActivity extends AppCompatActivity {
                         loadLock.lock();
                     }
                 }).start();
-
-                runWithLoadAnim(new Runnable() {
-                    @RequiresApi(api = Build.VERSION_CODES.O)
-                    @Override
-                    public void run() {
-                        AlphaAnimation alpha = new AlphaAnimation(1, 0);
-                        alpha.setDuration(500);
-                        alpha.setFillAfter(true);
-                        loadScreen.startAnimation(alpha);
-
-                        currentGame.startGameLoop();
-                        startLevelCompleteThread(currentGame);
-                    }
-                }, loadLock);
             }
         });
     }
 
-    private void startLevelCompleteThread(final Game currentGame) {
+    private void startLevelCompleteThread(final Game currentGame, final ImageButton replay, final ImageButton menu) {
         new Thread(new Runnable() {
             @Override
             public void run() {
+                replay.setClickable(false);
+                menu.setClickable(false);
                 synchronized (currentGame) {
                     while (currentGame.gameInProgress()) {
                         try {
@@ -147,7 +150,10 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 }
-
+                replay.setClickable(true);
+                menu.setClickable(true);
+                replay.clearColorFilter();
+                menu.clearColorFilter();
                 scaleAnim(findViewById(R.id.level_complete), true);
             }
         }).start();
@@ -160,8 +166,8 @@ public class MainActivity extends AppCompatActivity {
                 int temp = in ? 0 : 1;
                 ScaleAnimation scale = new ScaleAnimation(temp, 1 - temp, temp, 1 - temp,
                         Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
-                scale.setInterpolator(new BounceInterpolator());
-                scale.setDuration(1000);
+                scale.setInterpolator(new DecelerateInterpolator());
+                scale.setDuration(300);
                 scale.setFillAfter(true);
                 if (in) v.setVisibility(View.VISIBLE);
                 v.startAnimation(scale);
@@ -170,9 +176,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-    private void runWithLoadAnim(final Runnable run, final LoadLock loadLock) {
+    private void runWithLoadAnim(final Runnable run, final LoadLock loadLock, final boolean fadeIn, final boolean fadeOut) {
         new Thread(new Runnable() {
-            private final LoadAnim load = new LoadAnim(loadLock);
+            private final LoadAnim load = new LoadAnim(loadLock, fadeIn, fadeOut);
 
             @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
@@ -185,7 +191,6 @@ public class MainActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
                 }
-
                 context.runOnUiThread(run);
             }
         }).start();
@@ -209,9 +214,14 @@ public class MainActivity extends AppCompatActivity {
 
     class LoadAnim extends Thread {
         private LoadLock loadLock;
+        private ViewGroup loadScreen;
+        private boolean fadeIn, fadeOut;
 
-        LoadAnim(LoadLock loadLock) {
+        LoadAnim(@Nullable LoadLock loadLock, boolean fadeIn, boolean fadeOut) {
             this.loadLock = loadLock;
+            this.fadeIn = fadeIn;
+            this.fadeOut = fadeOut;
+            loadScreen = findViewById(R.id.load_screen);
         }
 
         @Override
@@ -219,7 +229,15 @@ public class MainActivity extends AppCompatActivity {
             int duration = 500;
             ImageView image = findViewById(R.id.plunger);
 
-            AnimationSet animSet = new AnimationSet(false);
+            if (fadeIn) {
+                AlphaAnimation alphaIn = new AlphaAnimation(0, 1);
+                alphaIn.setDuration(300);
+                alphaIn.setFillAfter(true);
+                loadScreen.startAnimation(alphaIn);
+            } else {
+                loadScreen.setVisibility(View.VISIBLE);
+            }
+
             while (image.getWidth() * image.getHeight() == 0) {
                 try {
                     Thread.sleep(100);
@@ -228,6 +246,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
+            AnimationSet animSet = new AnimationSet(false);
             ScaleAnimation s1 = new ScaleAnimation(-1, 1, 1, 1,
                     (float) Math.ceil(image.getWidth() / 2.0), (float) Math.ceil(image.getHeight() / 2.0));
             ScaleAnimation s2 = new ScaleAnimation(-1, 1, 1, 1,
@@ -249,7 +268,14 @@ public class MainActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
                 }
-            } while (loadLock.isLocked());
+            } while (loadLock != null && loadLock.isLocked());
+
+            if (fadeOut) {
+                AlphaAnimation alphaOut = new AlphaAnimation(1, 0);
+                alphaOut.setDuration(300);
+                alphaOut.setFillAfter(true);
+                loadScreen.startAnimation(alphaOut);
+            }
 
             synchronized (this) {
                 notify();
@@ -263,12 +289,12 @@ public class MainActivity extends AppCompatActivity {
             public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN: {
-                        v.getBackground().setColorFilter(new LightingColorFilter(0xffcccccc, 0x000000));
+                        ((ImageView) v).setColorFilter(new LightingColorFilter(0xffcccccc, 0x000000));
                         v.invalidate();
                         break;
                     }
                     case MotionEvent.ACTION_UP: {
-                        v.getBackground().clearColorFilter();
+                        ((ImageView) v).clearColorFilter();
                         v.invalidate();
                         break;
                     }

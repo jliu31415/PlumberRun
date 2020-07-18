@@ -7,15 +7,41 @@
     android:background="@color/primary_dark"
     tools:context=".MainActivity">
 
-    <jliu.plumberrun.Game
-        android:id="@+id/game_view"
+    <RelativeLayout
+        android:id="@+id/game_container"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent">
 
-    <include
-        android:id="@+id/load_screen"
-        layout="@layout/loading_transition"
-        android:visibility="invisible" />
+        <jliu.plumberrun.Game
+            android:id="@+id/game_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <ImageButton
+            android:id="@+id/imageButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:layout_margin="10dp"
+            android:background="@null"
+            android:contentDescription="@string/pause"
+            app:srcCompat="@drawable/pause_button" />
+
+        <ImageButton
+            android:id="@+id/settingsButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_margin="10dp"
+            android:layout_toStartOf="@+id/imageButton"
+            android:layout_toLeftOf="@+id/imageButton"
+            android:background="@null"
+            android:contentDescription="@string/pause"
+            app:srcCompat="@drawable/settings_button" />
+
+    </RelativeLayout>
 
     <RelativeLayout
         android:id="@+id/level_complete"
@@ -31,38 +57,37 @@
             android:contentDescription="@string/level_complete"
             app:srcCompat="@drawable/level_complete" />
 
-        <Button
+        <ImageButton
             android:id="@+id/replay_button"
-            style="@style/Widget.AppCompat.Button.Borderless.Colored"
-            android:layout_width="100dp"
-            android:layout_height="50dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_alignStart="@+id/pop_up"
             android:layout_alignLeft="@+id/pop_up"
             android:layout_alignParentBottom="true"
             android:layout_marginHorizontal="80dp"
             android:layout_marginVertical="40dp"
-            android:background="@color/yellow"
+            android:background="@null"
             android:contentDescription="@string/replay"
-            android:fontFamily="@font/chelsea_market"
-            android:text="@string/replay"
-            android:textColor="@color/primary_dark" />
+            app:srcCompat="@drawable/replay_button" />
 
-        <Button
+        <ImageButton
             android:id="@+id/menu_button"
-            style="@style/Widget.AppCompat.Button.Borderless.Colored"
-            android:layout_width="100dp"
-            android:layout_height="50dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_alignEnd="@+id/pop_up"
             android:layout_alignRight="@+id/pop_up"
             android:layout_alignParentBottom="true"
             android:layout_marginHorizontal="80dp"
             android:layout_marginVertical="40dp"
-            android:background="@color/yellow"
+            android:background="@null"
             android:contentDescription="@string/home"
-            android:fontFamily="@font/chelsea_market"
-            android:text="@string/home"
-            android:textColor="@color/primary_dark" />
+            app:srcCompat="@drawable/menu_button" />
 
     </RelativeLayout>
+
+    <include
+        android:id="@+id/load_screen"
+        layout="@layout/loading_transition"
+        android:visibility="invisible" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
