@@ -75,7 +75,11 @@ class LevelCreator {
                 fireworks = new ArrayList<>(5);
                 for (int i = -1; i <= 1; i += 2) {
                     Paint color = new Paint();
-                    color.setColor(Color.rgb((int) (255 * Math.random()), (int) (255 * Math.random()), (int) (255 * Math.random())));
+                    if (Math.random() < 1.0 / 3)
+                        color.setColor(Color.RED);
+                    else if (Math.random() < .5)
+                        color.setColor(Color.MAGENTA);
+                    else color.setColor(Color.BLUE);
                     fireworks.add(new FireworkParticle(Game.cameraFrame.centerX() + i * Game.cameraFrame.width() / 3.0,
                             Game.cameraFrame.height(), true, color));
                 }

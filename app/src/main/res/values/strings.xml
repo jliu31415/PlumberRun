@@ -9,4 +9,5 @@
     <string name="home">Home</string>
     <string name="replay">Replay</string>
     <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
 </resources>

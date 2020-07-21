@@ -9,7 +9,7 @@ class GameLoop extends Thread {
     private final SurfaceHolder surfaceHolder;
     private final static double TARGET_UPS = 35;
     private double averageUPS, averageFPS;
-    private boolean running = true;
+    private boolean running = true, paused = false;
 
     GameLoop(Game game, SurfaceHolder surfaceHolder) {
         this.game = game;
@@ -68,6 +68,18 @@ class GameLoop extends Thread {
                 updateCount = frameCount = 0;
                 startTime = System.currentTimeMillis();
             }
+
+            if (paused) {
+                synchronized (this) {
+                    try {
+                        wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                updateCount = frameCount = 0;
+                startTime = System.currentTimeMillis();
+            }
         }
     }
 
@@ -78,5 +90,16 @@ class GameLoop extends Thread {
 
     void endLoop() {
         running = false;
+    }
+
+    void pause() {
+        paused = true;
+    }
+
+    void resumeGame() {
+        paused = false;
+        synchronized (this) {
+            notify();
+        }
     }
 }

@@ -11,6 +11,7 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Build;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -202,6 +203,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     void update() {
+        Log.d("debug", cameraFrame.centerX() + "");
         int totalOffsetX = player.getPosition().left - cameraFrame.width() / 5;
         totalOffsetX = Math.min(totalOffsetX, level.size() * Constants.tileSize - cameraFrame.width());
         totalOffsetX = Math.max(totalOffsetX, 0);
@@ -297,6 +299,14 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         enemies.clear();
         levelCreator.reset();
         typeFace.setAlpha(255);
+    }
+
+    void pauseGame(){
+        gameLoop.pause();
+    }
+
+    void resumeGame() {
+        gameLoop.resumeGame();
     }
 
     boolean checkPlayerDeath() {
