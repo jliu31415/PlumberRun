@@ -11,7 +11,6 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Build;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -32,7 +31,8 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     private final Player player;
     private final PlungerType plunger;
     private ArrayList<Plunger> plungers;
-    private ArrayList<Enemy> enemies;
+    private ArrayList<Enemy> enemies;   //enemies to draw and update
+    private ArrayList<Enemy> enemiesInitialized;    //enemies that have already been initialized
     static Rect cameraFrame;
     private Rect jumpButton;
     private RectF slowMotionBar;
@@ -59,11 +59,12 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         Bitmap plunger_sprite = BitmapFactory.decodeResource(getResources(), R.drawable.plunger_sprite);
 
         gameLoop = new GameLoop(this, surfaceHolder);
-        levelCreator = new LevelCreator(this, grass_tile_sprites, flag_sprites, toilet_sprites);
+        levelCreator = new LevelCreator(this, grass_tile_sprites, toilet_sprites);
         player = new Player(plumber_sprites);
         plunger = new PlungerType(plunger_sprite, player);
         plungers = new ArrayList<>();
         enemies = new ArrayList<>();
+        enemiesInitialized = new ArrayList<>();
 
         lock = new Object();
         white = new Paint();
@@ -203,26 +204,21 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     void update() {
-        Log.d("debug", cameraFrame.centerX() + "");
         int totalOffsetX = player.getPosition().left - cameraFrame.width() / 5;
         totalOffsetX = Math.min(totalOffsetX, level.size() * Constants.tileSize - cameraFrame.width());
         totalOffsetX = Math.max(totalOffsetX, 0);
         cameraFrame.offset((totalOffsetX - cameraFrame.left) / 5, 0);
-
-        levelCreator.update();
 
         if (levelStarted) {
             player.update();
             for (Tile tile : levelCreator.getSurroundingTiles(player.getBounds())) {
                 levelCreator.updateCollisions(player, tile, true);
             }
-            if (levelCreator.checkLevelComplete(player)) {
+            if (checkPlayerDeath()) {
                 synchronized (this) {
                     gameInProgress = false;
-                    notify();   //notify MainActivity that level is complete
+                    notify();   //notify MainActivity that player has died
                 }
-            } else if (checkPlayerDeath()) {
-                resetLevel();
             }
 
             for (int i = 0; i < plungers.size(); i++) {
@@ -297,8 +293,11 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         player.initialize();
         plungers.clear();
         enemies.clear();
-        levelCreator.reset();
         typeFace.setAlpha(255);
+    }
+
+    boolean hasStarted() {
+        return levelStarted;
     }
 
     void pauseGame(){
@@ -324,6 +323,11 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
     void addEnemy(Enemy enemy) {
         enemies.add(enemy);
+        enemiesInitialized.add(enemy);
+    }
+
+    ArrayList<Enemy> getInitializedEnemies() {
+        return enemiesInitialized;
     }
 
     boolean levelLoading() {

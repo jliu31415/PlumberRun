@@ -1,13 +1,13 @@
 <resources>
     <string name="app_name">Plumber Run</string>
-    <string name="play">Play</string>
-    <string name="start_level">Start Level</string>
-    <string name="plunger">Plunger</string>
-    <string name="level_name">Level Name</string>
+    <string name="main_background">Main Background</string>
+    <string name="pop_up">Pop Up</string>
+    <string name="play_button">Play</string>
+    <string name="menu_button">Menu</string>
     <string name="jump_button">Jump</string>
-    <string name="level_complete">Level Complete</string>
-    <string name="home">Home</string>
-    <string name="replay">Replay</string>
-    <string name="pause">Pause</string>
-    <string name="resume">Resume</string>
+    <string name="pause_button">Pause</string>
+    <string name="plunger">Plunger</string>
+    <string name="cloud">Cloud</string>
+    <string name="info">Info</string>
+    <string name="replay_button">Replay</string>
 </resources>

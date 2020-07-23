@@ -23,7 +23,7 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.level_selection, parent, false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.card_view, parent, false);
         return new ViewHolder(view);
     }
 
@@ -45,7 +45,7 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
 
         ViewHolder(@NonNull View itemView) {
             super(itemView);
-            levelName = itemView.findViewById(R.id.levelName);
+            levelName = itemView.findViewById(R.id.cardName);
         }
     }
 }

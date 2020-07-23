@@ -26,109 +26,70 @@
             android:layout_alignParentRight="true"
             android:layout_margin="10dp"
             android:background="@null"
-            android:contentDescription="@string/pause"
+            android:contentDescription="@string/pause_button"
             app:srcCompat="@drawable/pause_button" />
 
-        <ImageButton
-            android:id="@+id/settings_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentTop="true"
-            android:layout_margin="10dp"
-            android:layout_toStartOf="@+id/pause_button"
-            android:layout_toLeftOf="@+id/pause_button"
-            android:background="@null"
-            android:contentDescription="@string/pause"
-            app:srcCompat="@drawable/settings_button" />
-
-    <RelativeLayout
-        android:id="@+id/level_complete"
-        android:visibility="invisible"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-        <ImageView
-            android:id="@+id/level_pop_up"
-            android:layout_width="400dp"
-            android:layout_height="400dp"
-            android:layout_centerInParent="true"
-            android:contentDescription="@string/level_complete"
-            app:srcCompat="@drawable/level_complete" />
-
-        <ImageButton
-            android:id="@+id/replay_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignStart="@+id/level_pop_up"
-            android:layout_alignLeft="@+id/level_pop_up"
-            android:layout_alignParentBottom="true"
-            android:layout_marginHorizontal="80dp"
-            android:layout_marginVertical="40dp"
-            android:background="@null"
-            android:contentDescription="@string/replay"
-            app:srcCompat="@drawable/replay_button" />
-
-        <ImageButton
-            android:id="@+id/menu_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignEnd="@+id/level_pop_up"
-            android:layout_alignRight="@+id/level_pop_up"
-            android:layout_alignParentBottom="true"
-            android:layout_marginHorizontal="80dp"
-            android:layout_marginVertical="40dp"
-            android:background="@null"
-            android:contentDescription="@string/home"
-            app:srcCompat="@drawable/menu_button" />
-
-    </RelativeLayout>
-
         <RelativeLayout
-            android:id="@+id/pause_screen"
+            android:id="@+id/pop_up_container"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:visibility="invisible">
 
             <ImageView
-                android:id="@+id/pause_pop_up"
+                android:id="@+id/pop_up"
                 android:layout_width="400dp"
                 android:layout_height="400dp"
                 android:layout_centerInParent="true"
-                android:contentDescription="@string/pause"
-                app:srcCompat="@drawable/pause_screen" />
+                android:contentDescription="@string/pop_up"
+                app:srcCompat="@drawable/pop_up" />
 
             <ImageButton
-                android:id="@+id/pause_menu_button"
+                android:id="@+id/menu_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignStart="@+id/pause_pop_up"
-                android:layout_alignLeft="@+id/pause_pop_up"
+                android:layout_alignStart="@+id/pop_up"
+                android:layout_alignLeft="@+id/pop_up"
                 android:layout_alignParentBottom="true"
                 android:layout_marginHorizontal="80dp"
                 android:layout_marginVertical="40dp"
                 android:background="@null"
-                android:contentDescription="@string/home"
+                android:contentDescription="@string/menu_button"
                 app:srcCompat="@drawable/menu_button" />
 
             <ImageButton
-                android:id="@+id/resume_button"
+                android:id="@+id/play_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignEnd="@+id/pause_pop_up"
-                android:layout_alignRight="@+id/pause_pop_up"
+                android:layout_alignEnd="@+id/pop_up"
+                android:layout_alignRight="@+id/pop_up"
                 android:layout_alignParentBottom="true"
                 android:layout_marginHorizontal="80dp"
                 android:layout_marginVertical="40dp"
                 android:background="@null"
-                android:contentDescription="@string/resume"
+                android:contentDescription="@string/play_button"
                 app:srcCompat="@drawable/play_button" />
+
+            <ImageButton
+                android:id="@+id/replay_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignEnd="@+id/pop_up"
+                android:layout_alignRight="@+id/pop_up"
+                android:layout_alignParentBottom="true"
+                android:layout_marginHorizontal="80dp"
+                android:layout_marginVertical="40dp"
+                android:background="@null"
+                android:contentDescription="@string/replay_button"
+                android:visibility="invisible"
+                app:srcCompat="@drawable/replay_button" />
 
         </RelativeLayout>
 
     </RelativeLayout>
 
     <include
-        android:id="@+id/game_load_screen"
-        layout="@layout/loading_transition" />
+        android:id="@+id/load_screen"
+        layout="@layout/loading_transition"
+        android:visibility="invisible" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

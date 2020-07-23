@@ -2,9 +2,6 @@ package jliu.plumberrun;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 
@@ -12,24 +9,18 @@ import java.util.ArrayList;
 
 class LevelCreator {
     private final Game game;
-    private Flag flag;
     private ArrayList<Integer[]> level;
-    private ArrayList<FireworkParticle> fireworks;
-    private ArrayList<Point> enemiesInstantiated;    //keeps track of instantiated enemies
-    private final Bitmap tileSprites, flagSprites, toilet_sprites;
+    private final Bitmap tileSprites, toilet_sprites;
     private Rect tilePosition, spriteFrame;
     private final int spriteSize; //tile spriteWidth = spriteHeight
-    private boolean levelComplete;
 
-    LevelCreator(Game game, Bitmap tileSprites, Bitmap flagSprites, Bitmap toilet_sprites) {
+    LevelCreator(Game game, Bitmap tileSprites, Bitmap toilet_sprites) {
         this.game = game;
         this.tileSprites = tileSprites;
-        this.flagSprites = flagSprites;
         this.toilet_sprites = toilet_sprites;
         spriteSize = tileSprites.getWidth() / 5;
         spriteFrame = new Rect(0, 0, spriteSize, spriteSize);
         tilePosition = new Rect(0, 0, Constants.tileSize, Constants.tileSize);
-        enemiesInstantiated = new ArrayList<>();
     }
 
     void initializeLevel(ArrayList<Integer[]> level) {
@@ -51,51 +42,16 @@ class LevelCreator {
                     canvas.drawBitmap(tileSprites, spriteFrame, tilePosition, null);
                 } else if (id == 50) {
                     boolean create = true;
-                    for (Point p : enemiesInstantiated) {
-                        if (p.equals(col, row)) {
+                    for (Enemy e : game.getInitializedEnemies()) {
+                        if (e.getInitializedPosition().equals(col * Constants.tileSize, row * Constants.tileSize)) {
                             create = false;
                             break;
                         }
                     }
                     if (create) {
                         game.addEnemy(new Enemy(toilet_sprites, col * Constants.tileSize, row * Constants.tileSize));
-                        enemiesInstantiated.add(new Point(col, row));
                     }
-                } else if (id == 99) {
-                    if (flag == null)
-                        flag = new Flag(flagSprites, col * Constants.tileSize, row * Constants.tileSize);
-                    flag.draw(canvas);
                 }
-            }
-        }
-
-        //draw fireworks
-        if (levelComplete) {
-            if (fireworks == null) {
-                fireworks = new ArrayList<>(5);
-                for (int i = -1; i <= 1; i += 2) {
-                    Paint color = new Paint();
-                    if (Math.random() < 1.0 / 3)
-                        color.setColor(Color.RED);
-                    else if (Math.random() < .5)
-                        color.setColor(Color.MAGENTA);
-                    else color.setColor(Color.BLUE);
-                    fireworks.add(new FireworkParticle(Game.cameraFrame.centerX() + i * Game.cameraFrame.width() / 3.0,
-                            Game.cameraFrame.height(), true, color));
-                }
-            }
-            for (FireworkParticle f : fireworks) {
-                f.draw(canvas);
-            }
-        }
-    }
-
-    void update() {
-        if (flag != null) flag.update();
-        if (fireworks != null) {
-            for (int i = 0; i < fireworks.size(); i++) {
-                fireworks.get(i).update();
-                if (fireworks.get(i).canRemove()) fireworks.remove(i--);
             }
         }
     }
@@ -242,13 +198,6 @@ class LevelCreator {
         return surroundingTiles;
     }
 
-    boolean checkLevelComplete(Player player) {
-        if (flag != null && updateCollisions(player, flag, false)) {
-            levelComplete = true;
-        }
-        return levelComplete;
-    }
-
     void setEnemyMovement(Enemy enemy) {
         try {
             int coordinateX = (int) (enemy.getPosition().centerX() + Math.copySign(Constants.tileSize, enemy.getVelX()));
@@ -264,75 +213,6 @@ class LevelCreator {
             if (tileID == 0) enemy.flip(enemy.getVelX() < 0);
         } catch (IndexOutOfBoundsException e) {
             e.printStackTrace();
-        }
-    }
-
-    void reset() {
-        enemiesInstantiated.clear();
-        flag = null;
-        fireworks = null;
-        levelComplete = false;
-    }
-
-    static class FireworkParticle {
-        private double posX, posY;
-        private double velX, velY;
-        ArrayList<FireworkParticle> fragments;
-        private Paint color;
-        private boolean parent, exploded;
-
-        FireworkParticle(double posX, double posY, boolean parent, Paint color) {
-            this.parent = parent;   //parent objects differ from exploded fragments
-            this.posX = posX;
-            this.posY = posY;
-            double launchVel = Constants.fireworkLaunchVel;
-            if (parent) {
-                velX = 0;
-                velY = launchVel;
-            } else {
-                velX = launchVel * (Math.random() - .5);
-                velY = launchVel * (Math.random() - .5);
-            }
-
-            this.color = color;
-        }
-
-        void update() {
-            if (parent && !exploded && velY < 0) explode();
-            if (fragments != null) {
-                for (int i = 0; i < fragments.size(); i++) {
-                    fragments.get(i).update();
-                    if (fragments.get(i).canRemove()) fragments.remove(i--);
-                }
-            }
-
-            posX += velX;
-            posY -= velY;
-            velY += Constants.projectileGravity;
-        }
-
-        private void explode() {
-            exploded = true;
-            fragments = new ArrayList<>();
-            for (int i = 0; i < 10; i++) {
-                fragments.add(new FireworkParticle(this.posX, this.posY, false, this.color));
-            }
-        }
-
-        void draw(Canvas canvas) {
-            double fragmentSize = Constants.fragmentSize;
-            if (!exploded)  //stop drawing parent after explosion
-                canvas.drawCircle((float) posX, (float) posY,
-                        (float) (fragmentSize * (1 + .5 * Math.random())), color);
-            if (fragments != null) {
-                for (FireworkParticle f : fragments) f.draw(canvas);
-            }
-        }
-
-        boolean canRemove() {
-            if (exploded && fragments.size() == 0)
-                return true;    //condition for removing parent
-            return !parent && posY > Game.cameraFrame.height();  //condition for removing fragment
         }
     }
 }

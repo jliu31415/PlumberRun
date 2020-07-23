@@ -35,69 +35,99 @@ public class MainActivity extends AppCompatActivity {
         context = this;
         super.onCreate(savedInstanceState);
         setContentView(R.layout.loading_transition);
-        TransitionManager.go(Scene.getSceneForLayout((ViewGroup) findViewById(R.id.root_container), R.layout.recycler_view, context));
-        initRecyclerView();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                delayThread(1000);
+                runWithLoadAnim(new Runnable() {
+                    @Override
+                    public void run() {
+                        goToMain();
+                    }
+                }, null);
+            }
+        }).start();
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    private void goToMain() {
+        TransitionManager.go(Scene.getSceneForLayout((ViewGroup) findViewById(R.id.root_container), R.layout.main, context));
+
+        ImageButton playButton = findViewById(R.id.play_button);
+        applyButtonEffect(playButton);
+
+        playButton.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+            @Override
+            public void onClick(View v) {
+                goToGame();
+            }
+        });
     }
 
     private void initRecyclerView() {
-        //set level names
-        ArrayList<String> levelNames = new ArrayList<>();
-        levelNames.add("Level 1");
-        levelNames.add("Level 2");
-        levelNames.add("Level 3");
-        levelNames.add("Level 4");
-        levelNames.add("Level 5");
+        ArrayList<String> cardNames = new ArrayList<>();
+        cardNames.add("1");
+        cardNames.add("2");
+        cardNames.add("3");
+        cardNames.add("4");
+        cardNames.add("5");
 
         RecyclerView recyclerView = findViewById(R.id.recycler_view);
         LinearLayoutManager layoutManager = new LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false);
         recyclerView.setLayoutManager(layoutManager);
 
-        RecyclerViewAdapter adapter = new RecyclerViewAdapter(context, levelNames);
+        RecyclerViewAdapter adapter = new RecyclerViewAdapter(context, cardNames);
         recyclerView.setAdapter(adapter);
 
         LinearSnapHelper snapper = new LinearSnapHelper();
         snapper.attachToRecyclerView(recyclerView);
-
-        ImageButton start = findViewById(R.id.start);
-        applyButtonEffect(start);
-
-        start.setOnClickListener(new View.OnClickListener() {
-            @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-            @Override
-            public void onClick(View v) {
-                TransitionManager.go(Scene.getSceneForLayout((ViewGroup) findViewById(R.id.root_container), R.layout.game_view, context));
-                startGame();
-            }
-        });
     }
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-    private void startGame() {
+    private void goToGame() {
+        TransitionManager.go(Scene.getSceneForLayout((ViewGroup) findViewById(R.id.root_container), R.layout.game_view, context));
         final Game currentGame = findViewById(R.id.game_view);
-        final ViewGroup loadScreen = findViewById(R.id.game_load_screen);
+        final ViewGroup loadScreen = findViewById(R.id.load_screen);
+        loadScreen.setVisibility(View.VISIBLE);
         final LoadLock loadLock = new LoadLock();
-        final ImageButton replayButton = findViewById(R.id.replay_button);
-        final ImageButton menuButton = findViewById(R.id.menu_button);
         final ImageButton pauseButton = findViewById(R.id.pause_button);
-        final ImageButton settingsButton = findViewById(R.id.settings_button);
+        final ImageButton menuButton = findViewById(R.id.menu_button);
+        final ImageButton continueButton = findViewById(R.id.play_button);
+        final ImageButton replayButton = findViewById(R.id.replay_button);
 
-        runWithLoadAnim(new Runnable() {
-            @RequiresApi(api = Build.VERSION_CODES.O)
+        new Thread(new Runnable() {
             @Override
             public void run() {
-                fadeAnim(loadScreen, false, 300);  //fade out load transition
-                currentGame.startGameLoop();
-                startGameThread(currentGame, replayButton, menuButton); //wait for game to complete
+                delayThread(700);
+                runWithLoadAnim(new Runnable() {
+                    @RequiresApi(api = Build.VERSION_CODES.O)
+                    @Override
+                    public void run() {
+                        delayThread(300);
+                        fadeAnim(loadScreen, false, 300);  //fade out load transition
+                        currentGame.startGameLoop();
+                        startGameThread(currentGame, replayButton, menuButton); //wait for game to complete
+                    }
+                }, loadLock);
             }
-        }, loadLock);
+        }).start();
 
-        applyButtonEffect(replayButton);
-        replayButton.setOnClickListener(new View.OnClickListener() {
+        //pause button
+        applyButtonEffect(pauseButton);
+        pauseButton.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.Q)
             @Override
             public void onClick(View v) {
-                scaleAnim(findViewById(R.id.level_complete), false);
-                currentGame.resetLevel();
-                startGameThread(currentGame, replayButton, menuButton); //restart thread
+                if (currentGame.hasStarted()) {
+                    menuButton.setClickable(true);
+                    continueButton.setClickable(true);
+                    menuButton.clearColorFilter();
+                    replayButton.setVisibility(View.INVISIBLE);
+                    continueButton.clearColorFilter();
+                    currentGame.pauseGame();
+                    scaleAnim(findViewById(R.id.pop_up_container), true);
+                }
             }
         });
 
@@ -106,48 +136,34 @@ public class MainActivity extends AppCompatActivity {
             @RequiresApi(api = Build.VERSION_CODES.KITKAT)
             @Override
             public void onClick(View v) {
-                replayButton.setClickable(false);
                 menuButton.setClickable(false);
+                replayButton.setClickable(false);
+                continueButton.setClickable(false);
                 currentGame.endGameLoop();
                 loadMenu(loadScreen);
             }
         });
 
-        //pause button
-        applyButtonEffect(pauseButton);
-        pauseButton.setOnClickListener(new View.OnClickListener() {
-            @RequiresApi(api = Build.VERSION_CODES.Q)
+        applyButtonEffect(continueButton);
+        continueButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                scaleAnim(findViewById(R.id.pause_screen), true);
-                currentGame.pauseGame();
-                final ImageButton menuButton = findViewById(R.id.pause_menu_button);
-                final ImageButton resumeButton = findViewById(R.id.resume_button);
+                menuButton.setClickable(false);
+                continueButton.setClickable(false);
+                currentGame.resumeGame();
+                scaleAnim(findViewById(R.id.pop_up_container), false);
+            }
+        });
 
-                applyButtonEffect(menuButton);
-                menuButton.clearColorFilter();
-                menuButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        menuButton.setClickable(false);
-                        resumeButton.setClickable(false);
-                        currentGame.endGameLoop();
-                        loadMenu(loadScreen);
-                    }
-                });
-
-                applyButtonEffect(resumeButton);
-                resumeButton.clearColorFilter();
-                resumeButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        //automatically set as clickable when instantiated
-                        menuButton.setClickable(false);
-                        resumeButton.setClickable(false);
-                        scaleAnim(findViewById(R.id.pause_screen), false);
-                        currentGame.resumeGame();
-                    }
-                });
+        applyButtonEffect(replayButton);
+        replayButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                menuButton.setClickable(false);
+                replayButton.setClickable(false);
+                scaleAnim(findViewById(R.id.pop_up_container), false);
+                currentGame.resetLevel();
+                startGameThread(currentGame, replayButton, menuButton); //restart thread
             }
         });
 
@@ -166,6 +182,14 @@ public class MainActivity extends AppCompatActivity {
                 loadLock.unlock();
             }
         }).start();
+    }
+
+    private void delayThread(int millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
@@ -189,8 +213,7 @@ public class MainActivity extends AppCompatActivity {
                             @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
                             @Override
                             public void run() {
-                                TransitionManager.go(Scene.getSceneForLayout((ViewGroup) findViewById(R.id.root_container), R.layout.recycler_view, context));
-                                initRecyclerView();
+                                goToMain();
                             }
                         }, null);
                     }
@@ -203,8 +226,6 @@ public class MainActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                replay.setClickable(false);
-                menu.setClickable(false);
                 synchronized (currentGame) {
                     while (currentGame.gameInProgress()) {
                         try {
@@ -215,12 +236,18 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
 
-                //level complete
-                replay.setClickable(true);
+                //player death
                 menu.setClickable(true);
-                replay.clearColorFilter();
+                replay.setClickable(true);
                 menu.clearColorFilter();
-                scaleAnim(findViewById(R.id.level_complete), true);
+                replay.clearColorFilter();
+                context.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        replay.setVisibility(View.VISIBLE);
+                    }
+                });
+                scaleAnim(findViewById(R.id.pop_up_container), true);
             }
         }).start();
     }

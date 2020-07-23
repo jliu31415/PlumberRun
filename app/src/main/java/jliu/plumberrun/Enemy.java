@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 
@@ -11,6 +12,7 @@ class Enemy extends CollisionObject {
     private final Bitmap toiletSprites;
     private final Bitmap mirroredSprites;
     private Rect enemyPosition, spriteFrame;
+    private Point initializedPosition;
     private float[] bounds;
     private final int spriteSize;
     private final int enemySize = Constants.enemySize;
@@ -26,7 +28,8 @@ class Enemy extends CollisionObject {
         reflection.setScale(-1, 1, toiletSprites.getWidth() / 2.0f, toiletSprites.getHeight() / 2.0f);
         mirroredSprites = Bitmap.createBitmap(toiletSprites, 0, 0, toiletSprites.getWidth(), toiletSprites.getHeight(),
                 reflection, true);
-        posY -= enemySize - Constants.tileSize;
+        initializedPosition = new Point((int) posX, (int) posY);
+        posY -= enemySize - Constants.tileSize; //align bottom left corner of sprite
         enemyPosition = new Rect((int) posX, (int) posY, (int) posX + enemySize, (int) posY + enemySize);
         spriteSize = toiletSprites.getWidth() / 5;
         spriteFrame = new Rect(0, 0, spriteSize, spriteSize);
@@ -90,6 +93,10 @@ class Enemy extends CollisionObject {
     @Override
     Rect getPosition() {
         return enemyPosition;
+    }
+
+    Point getInitializedPosition() {
+        return initializedPosition;
     }
 
     @Override
