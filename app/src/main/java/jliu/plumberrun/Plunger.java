@@ -87,7 +87,7 @@ class Plunger extends CollisionObject {
             }
             angle = aim;
 
-            power = Math.hypot(startX - endX, startY - endY) / (Game.cameraFrame.right / 8.0);
+            power = Math.hypot(startX - endX, startY - endY) / (Game.cameraFrame.width() / 8.0);
             power = Math.min(power, 1);
             power = Math.max(power, .5);
         } else {
@@ -104,11 +104,11 @@ class Plunger extends CollisionObject {
                 //angle unchanged when falling or fading
                 angle = plungerSpeed == 0 ? angle : (float) Math.atan(velY / velX);
                 if (velX < 0) angle += Math.PI;
-
-                if (fading && opacity.getAlpha() > 0)
-                    opacity.setAlpha(Math.max(0, opacity.getAlpha() - Constants.fade));
             }
         }
+
+        if (fading && opacity.getAlpha() > 0)
+            opacity.setAlpha(Math.max(0, opacity.getAlpha() - Constants.fade));
 
         canFire = true;
 

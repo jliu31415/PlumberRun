@@ -99,15 +99,15 @@ public class MainActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                delayThread(700);
+                delayThread(500);
                 runWithLoadAnim(new Runnable() {
                     @RequiresApi(api = Build.VERSION_CODES.O)
                     @Override
                     public void run() {
-                        delayThread(300);
+                        delayThread(500);
                         fadeAnim(loadScreen, false, 300);  //fade out load transition
                         currentGame.startGameLoop();
-                        startGameThread(currentGame, replayButton, menuButton); //wait for game to complete
+                        startGameThread(currentGame); //wait for game to complete
                     }
                 }, loadLock);
             }
@@ -123,8 +123,8 @@ public class MainActivity extends AppCompatActivity {
                     menuButton.setClickable(true);
                     continueButton.setClickable(true);
                     menuButton.clearColorFilter();
-                    replayButton.setVisibility(View.INVISIBLE);
                     continueButton.clearColorFilter();
+                    replayButton.setVisibility(View.INVISIBLE);
                     currentGame.pauseGame();
                     scaleAnim(findViewById(R.id.pop_up_container), true);
                 }
@@ -163,12 +163,12 @@ public class MainActivity extends AppCompatActivity {
                 replayButton.setClickable(false);
                 scaleAnim(findViewById(R.id.pop_up_container), false);
                 currentGame.resetLevel();
-                startGameThread(currentGame, replayButton, menuButton); //restart thread
+                startGameThread(currentGame); //restart thread
             }
         });
 
         //update load lock
-        currentGame.loadLevel(0);
+        currentGame.loadLevel();
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -222,10 +222,20 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-    private void startGameThread(final Game currentGame, final ImageButton replay, final ImageButton menu) {
+    private void startGameThread(final Game currentGame) {
+        final ImageButton menuButton = findViewById(R.id.menu_button);
+        final ImageButton replayButton = findViewById(R.id.replay_button);
+        final ImageButton continueButton = findViewById(R.id.play_button);
+
         new Thread(new Runnable() {
             @Override
             public void run() {
+                currentGame.resumeGame();
+
+                menuButton.setClickable(false);
+                replayButton.setClickable(false);
+                continueButton.setClickable(false);
+
                 synchronized (currentGame) {
                     while (currentGame.gameInProgress()) {
                         try {
@@ -237,17 +247,18 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 //player death
-                menu.setClickable(true);
-                replay.setClickable(true);
-                menu.clearColorFilter();
-                replay.clearColorFilter();
+                menuButton.setClickable(true);
+                replayButton.setClickable(true);
+                menuButton.clearColorFilter();
+                replayButton.clearColorFilter();
                 context.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        replay.setVisibility(View.VISIBLE);
+                        replayButton.setVisibility(View.VISIBLE);
                     }
                 });
                 scaleAnim(findViewById(R.id.pop_up_container), true);
+                currentGame.pauseGame();
             }
         }).start();
     }

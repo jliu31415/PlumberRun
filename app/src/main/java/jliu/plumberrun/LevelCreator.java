@@ -9,13 +9,15 @@ import java.util.ArrayList;
 
 class LevelCreator {
     private final Game game;
-    private ArrayList<Integer[]> level;
+    private final ArrayList<Integer[]> level;
+    private int levelIndexOffset;
     private final Bitmap tileSprites, toilet_sprites;
     private Rect tilePosition, spriteFrame;
     private final int spriteSize; //tile spriteWidth = spriteHeight
 
     LevelCreator(Game game, Bitmap tileSprites, Bitmap toilet_sprites) {
         this.game = game;
+        level = new ArrayList<>();
         this.tileSprites = tileSprites;
         this.toilet_sprites = toilet_sprites;
         spriteSize = tileSprites.getWidth() / 5;
@@ -23,17 +25,22 @@ class LevelCreator {
         tilePosition = new Rect(0, 0, Constants.tileSize, Constants.tileSize);
     }
 
-    void initializeLevel(ArrayList<Integer[]> level) {
-        this.level = level;
+    void initializeLevel(ArrayList<Integer[]> levelFragment) {
+        level.clear();
+        level.addAll(levelFragment);
+        levelIndexOffset = 0;
     }
 
     void draw(Canvas canvas) {
         int framePosX, framePosY;
 
         for (int col = Game.cameraFrame.left / Constants.tileSize; col <= Game.cameraFrame.right / Constants.tileSize; col++) {
-            if (col == level.size()) break;
-            for (int row = 0; row < level.get(col).length; row++) {
-                int id = level.get(col)[row];
+            if (col >= level.size() + levelIndexOffset) {
+                addFragment();
+                break;
+            }
+            for (int row = 0; row < level.get(col - levelIndexOffset).length; row++) {
+                int id = level.get(col - levelIndexOffset)[row];
                 if (0 < id && id < 16) {
                     framePosX = spriteSize * (--id % 5);
                     framePosY = spriteSize * (id / 5);
@@ -54,6 +61,15 @@ class LevelCreator {
                 }
             }
         }
+    }
+
+    private void addFragment() {
+        ArrayList<Integer[]> levelFragment = game.newFragment();
+        if (level.size() + levelFragment.size() >= 128) {    //clean list
+            level.subList(0, Game.cameraFrame.left / Constants.tileSize - levelIndexOffset).clear();
+            levelIndexOffset = Game.cameraFrame.left / Constants.tileSize;
+        }
+        level.addAll(levelFragment);
     }
 
     boolean updateCollisions(CollisionObject collisionObject1, CollisionObject collisionObject2, boolean offsetObject) {
@@ -135,7 +151,7 @@ class LevelCreator {
 
         if (offset.x != 0) {
             try {
-                int tileID = level.get(coordinateX / Constants.tileSize)[tile.getPosition().centerY() / Constants.tileSize];
+                int tileID = level.get(coordinateX / Constants.tileSize - levelIndexOffset)[tile.getPosition().centerY() / Constants.tileSize];
                 if (Tile.isTile(tileID)) {
                     int index = 1;
                     if (offset.x < 0) index = 3;
@@ -150,7 +166,7 @@ class LevelCreator {
 
         if (offset.y != 0) {
             try {
-                int tileID = level.get(tile.getPosition().centerX() / Constants.tileSize)[coordinateY / Constants.tileSize];
+                int tileID = level.get(tile.getPosition().centerX() / Constants.tileSize - levelIndexOffset)[coordinateY / Constants.tileSize];
                 if (Tile.isTile(tileID)) {
                     int index = 0;
                     if (offset.y < 0) index = 2;
@@ -182,7 +198,7 @@ class LevelCreator {
         int coordinateX = minX, coordinateY = minY;   //border coordinates
         do {
             try {
-                int tileID = level.get(coordinateX / Constants.tileSize)[coordinateY / Constants.tileSize];
+                int tileID = level.get(coordinateX / Constants.tileSize - levelIndexOffset)[coordinateY / Constants.tileSize];
                 if (Tile.isTile(tileID))
                     surroundingTiles.add(new Tile(tileID, coordinateX, coordinateY));
             } catch (IndexOutOfBoundsException e) {
@@ -203,13 +219,13 @@ class LevelCreator {
             int coordinateX = (int) (enemy.getPosition().centerX() + Math.copySign(Constants.tileSize, enemy.getVelX()));
             int coordinateY = enemy.getPosition().top;
 
-            int tileID = level.get(coordinateX / Constants.tileSize)[coordinateY / Constants.tileSize];
+            int tileID = level.get(coordinateX / Constants.tileSize - levelIndexOffset)[coordinateY / Constants.tileSize];
             if (Tile.isTile(tileID)) enemy.flip(enemy.getVelX() < 0);
 
-            tileID = level.get(coordinateX / Constants.tileSize)[coordinateY / Constants.tileSize + 1];
+            tileID = level.get(coordinateX / Constants.tileSize - levelIndexOffset)[coordinateY / Constants.tileSize + 1];
             if (Tile.isTile(tileID)) enemy.flip(enemy.getVelX() < 0);
 
-            tileID = level.get(coordinateX / Constants.tileSize)[coordinateY / Constants.tileSize + 2];
+            tileID = level.get(coordinateX / Constants.tileSize - levelIndexOffset)[coordinateY / Constants.tileSize + 2];
             if (tileID == 0) enemy.flip(enemy.getVelX() < 0);
         } catch (IndexOutOfBoundsException e) {
             e.printStackTrace();

@@ -26,23 +26,23 @@ import java.util.Scanner;
 @SuppressLint("ViewConstructor")
 class Game extends SurfaceView implements SurfaceHolder.Callback {
     private final GameLoop gameLoop;
-    private ArrayList<Integer[]> level;
+    private final ArrayList<ArrayList<Integer[]>> levelFragments;
+    private int fragmentOffset;
     private final LevelCreator levelCreator;
     private final Player player;
     private final PlungerType plunger;
     private ArrayList<Plunger> plungers;
     private ArrayList<Enemy> enemies;   //enemies to draw and update
     private ArrayList<Enemy> enemiesInitialized;    //enemies that have already been initialized
-    static Rect cameraFrame;
+    static final Rect cameraFrame = new Rect();
     private Rect jumpButton;
     private RectF slowMotionBar;
-    private final Object lock;
     private Paint white;
     private Paint typeFace;
     private long startTime = 0;
     private double slowDuration = 1000;
     private boolean slowMotion = false;
-    private boolean levelLoading = true, levelStarted = false, gameInProgress = true;
+    private boolean levelLoading = true, fragmentsParsed = false, levelStarted, gameInProgress;   //gameInProgress if player is alive
 
     //must be public for xml file
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -54,10 +54,10 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
         Bitmap plumber_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.plumber_sprites);
         Bitmap grass_tile_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.grass_tile_sprites);
-        Bitmap flag_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.flag_sprites);
         Bitmap toilet_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.toilet_sprites);
         Bitmap plunger_sprite = BitmapFactory.decodeResource(getResources(), R.drawable.plunger_sprite);
 
+        levelFragments = new ArrayList<>();
         gameLoop = new GameLoop(this, surfaceHolder);
         levelCreator = new LevelCreator(this, grass_tile_sprites, toilet_sprites);
         player = new Player(plumber_sprites);
@@ -66,7 +66,6 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         enemies = new ArrayList<>();
         enemiesInitialized = new ArrayList<>();
 
-        lock = new Object();
         white = new Paint();
         white.setColor(Color.WHITE);
         typeFace = new Paint();
@@ -75,45 +74,50 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         typeFace.setTextAlign(Paint.Align.CENTER);
     }
 
-    private ArrayList<Integer[]> parseLevel(int levelID) {
-        InputStream is = new InputStream() {
-            @Override
-            public int read() {
-                return 0;
-            }
-        };
+    private void parseFragments() {
+        InputStream is;
 
-        if (levelID == 0) {
-            is = this.getResources().openRawResource(R.raw.test_level);
-        }
+        for (int i = 0; i < 5; i++) {
+            if (i == 0) is = this.getResources().openRawResource(R.raw.frag_0);
+            else if (i == 1) is = this.getResources().openRawResource(R.raw.frag_1);
+            else if (i == 2) is = this.getResources().openRawResource(R.raw.frag_2);
+            else if (i == 3) is = this.getResources().openRawResource(R.raw.frag_3);
+            else is = this.getResources().openRawResource(R.raw.frag_4);
 
-        Scanner scan = new Scanner(is);
-        ArrayList<Integer[]> level = new ArrayList<>();
-        int numRows = (int) Math.ceil((double) cameraFrame.height() / Constants.tileSize);
-        int id = 0;
-        boolean autoFill;
+            Scanner scan = new Scanner(is);
+            ArrayList<Integer[]> levelFragment = new ArrayList<>();
+            int numRows = (int) Math.ceil((double) cameraFrame.height() / Constants.tileSize);
+            int id = 0;
+            boolean autoFill;
 
-        while (scan.hasNext()) {
-            if (!scan.hasNextInt()) {
-                if (scan.next().equals("*")) {
-                    int repeat = scan.nextInt();
-                    while (repeat-- > 0) level.add(level.get(level.size() - 1));
-                } else scan.nextLine(); //ignore text comments
-            } else {
-                Integer[] column = new Integer[numRows];
-                autoFill = false;
-                for (int i = numRows - 1; i >= 0; i--) {
-                    if (!autoFill) id = scan.nextInt();
-                    if (id == -1) autoFill = true;
-                    if (!autoFill) column[i] = id;
-                    else column[i] = column[i + 1];
+            while (scan.hasNext()) {
+                if (!scan.hasNextInt()) {
+                    if (scan.next().equals("*")) {
+                        int repeat = scan.nextInt();
+                        while (repeat-- > 0)
+                            levelFragment.add(levelFragment.get(levelFragment.size() - 1));
+                    } else scan.nextLine(); //ignore text comments
+                } else {
+                    Integer[] column = new Integer[numRows];
+                    autoFill = false;
+                    for (int j = numRows - 1; j >= 0; j--) {
+                        if (!autoFill) id = scan.nextInt();
+                        if (id == -1) autoFill = true;
+                        if (!autoFill) column[j] = id;
+                        else column[j] = column[j + 1];
+                    }
+                    levelFragment.add(column);
                 }
-                level.add(column);
             }
+
+            levelFragments.add(levelFragment);
+            scan.close();
         }
 
-        scan.close();
-        return level;
+        fragmentsParsed = true;
+        synchronized (levelFragments) {
+            levelFragments.notify();
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -157,12 +161,12 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         //landscape reference
         int canvasX = holder.getSurfaceFrame().right;
         int canvasY = holder.getSurfaceFrame().bottom;
-        cameraFrame = new Rect(0, 0, canvasX, canvasY);
+        cameraFrame.set(0, 0, canvasX, canvasY);
         jumpButton = new Rect(canvasX / 2, canvasY / 2, canvasX, canvasY);
         slowMotionBar = new RectF(canvasX / 20.0f, canvasY / 20.0f, canvasX / 3.0f, canvasY / 10.0f);
 
-        synchronized (lock) {
-            lock.notify();   //allow parseLevel() when cameraFrame is initialized;
+        synchronized (cameraFrame) {
+            cameraFrame.notify();   //allow parseFragments() when cameraFrame is initialized;
         }
     }
 
@@ -205,9 +209,8 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
     void update() {
         int totalOffsetX = player.getPosition().left - cameraFrame.width() / 5;
-        totalOffsetX = Math.min(totalOffsetX, level.size() * Constants.tileSize - cameraFrame.width());
         totalOffsetX = Math.max(totalOffsetX, 0);
-        cameraFrame.offset((totalOffsetX - cameraFrame.left) / 5, 0);
+        cameraFrame.offset((totalOffsetX - cameraFrame.left) / 5, 0);   //linear interpolate
 
         if (levelStarted) {
             player.update();
@@ -263,22 +266,33 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         }
     }
 
-    void loadLevel(final int levelID) {
+    //load fragments
+    void loadLevel() {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                while (cameraFrame == null) {
-                    synchronized (lock) {
+                while (cameraFrame.width() * cameraFrame.height() == 0) {
+                    synchronized (cameraFrame) {
                         try {
-                            lock.wait();    //wait for cameraFrame initialization
+                            cameraFrame.wait();    //wait for cameraFrame initialization
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
                     }
                 }
-                level = parseLevel(levelID);
-                levelCreator.initializeLevel(level);
-                player.initialize();
+
+                parseFragments();
+                while (!fragmentsParsed) {
+                    synchronized (levelFragments) {
+                        try {
+                            levelFragments.wait();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+
+                resetLevel();
                 levelLoading = false;
             }
         }).start();
@@ -291,8 +305,11 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         levelStarted = false;
         gameInProgress = true;
         player.initialize();
+        fragmentOffset = 0;
+        levelCreator.initializeLevel(levelFragments.get(0));
         plungers.clear();
         enemies.clear();
+        enemiesInitialized.clear();
         typeFace.setAlpha(255);
     }
 
@@ -328,6 +345,10 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
     ArrayList<Enemy> getInitializedEnemies() {
         return enemiesInitialized;
+    }
+
+    public ArrayList<Integer[]> newFragment() {
+        return levelFragments.get((int) (Math.random() * levelFragments.size()));
     }
 
     boolean levelLoading() {
