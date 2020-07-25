@@ -104,9 +104,9 @@ public class MainActivity extends AppCompatActivity {
                     @RequiresApi(api = Build.VERSION_CODES.O)
                     @Override
                     public void run() {
+                        currentGame.startGameLoop();
                         delayThread(500);
                         fadeAnim(loadScreen, false, 300);  //fade out load transition
-                        currentGame.startGameLoop();
                         startGameThread(currentGame); //wait for game to complete
                     }
                 }, loadLock);

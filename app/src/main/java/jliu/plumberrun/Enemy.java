@@ -14,16 +14,18 @@ class Enemy extends CollisionObject {
     private Rect enemyPosition, spriteFrame;
     private Point initializedPosition;
     private float[] bounds;
-    private final int spriteSize;
+    private final int spriteWidth, spriteHeight;
     private final int enemySize = Constants.enemySize;
-    private double velX = -Constants.enemySpeed;    //enemy starts by moving left
+    private double velX = -Constants.enemySpeed, velY = 0;    //enemy starts by moving left
     private int frameCount = 0, frameIncrement = 1, pauseCount = 1;
+    private boolean groundEnemy;
     private boolean flipped = false;
     private boolean fading = false;
     private Paint opacity;
 
-    Enemy(Bitmap toiletSprites, double posX, double posY) {
+    Enemy(Bitmap toiletSprites, boolean groundEnemy, double posX, double posY) {
         this.toiletSprites = toiletSprites;
+        this.groundEnemy = groundEnemy;
         Matrix reflection = new Matrix();
         reflection.setScale(-1, 1, toiletSprites.getWidth() / 2.0f, toiletSprites.getHeight() / 2.0f);
         mirroredSprites = Bitmap.createBitmap(toiletSprites, 0, 0, toiletSprites.getWidth(), toiletSprites.getHeight(),
@@ -31,8 +33,10 @@ class Enemy extends CollisionObject {
         initializedPosition = new Point((int) posX, (int) posY);
         posY -= enemySize - Constants.tileSize; //align bottom left corner of sprite
         enemyPosition = new Rect((int) posX, (int) posY, (int) posX + enemySize, (int) posY + enemySize);
-        spriteSize = toiletSprites.getWidth() / 5;
-        spriteFrame = new Rect(0, 0, spriteSize, spriteSize);
+        spriteWidth = toiletSprites.getWidth() / 5;
+        spriteHeight = toiletSprites.getHeight() / 2;
+        spriteFrame = new Rect(0, 0, spriteWidth, spriteHeight);
+        if (!groundEnemy) spriteFrame.offset(0, spriteHeight);
         setBounds();
         opacity = new Paint();
         opacity.setAlpha(255);
@@ -56,24 +60,32 @@ class Enemy extends CollisionObject {
         }
 
         if (flipped) {
-            spriteFrame.offsetTo((4 - frameCount) * spriteSize, 0);
+            spriteFrame.offsetTo((4 - frameCount) * spriteWidth, 0);
         } else {
-            spriteFrame.offsetTo(frameCount * spriteSize, 0);
+            spriteFrame.offsetTo(frameCount * spriteWidth, 0);
         }
+        if (!groundEnemy) spriteFrame.offset(0, spriteHeight);
 
         if (fading && opacity.getAlpha() > 0)
             opacity.setAlpha(Math.max(0, opacity.getAlpha() - Constants.fade));
 
-        offSetPosition((int) velX, 0);
+        if (groundEnemy) velY = Math.max(velY + Constants.playerGravity, -Constants.playerJumpVel);
+        offSetPosition((int) velX, (int) -velY);
     }
 
     @Override
     void setBounds() {
-        bounds = new float[]{enemyPosition.left + enemySize * .6f, enemyPosition.top + enemySize * .1f,
-                enemyPosition.left + enemySize * .9f, enemyPosition.top + enemySize * .1f,
-                enemyPosition.left + enemySize * .9f, enemyPosition.bottom,
-                enemyPosition.left + enemySize * .1f, enemyPosition.bottom,
-                enemyPosition.left + enemySize * .1f, enemyPosition.bottom - enemySize * .3f};
+        bounds = new float[]{enemyPosition.left + enemySize * .6f, enemyPosition.top + enemySize * .45f,
+                enemyPosition.left + enemySize * .8f, enemyPosition.top + enemySize * .45f,
+                enemyPosition.left + enemySize * .6f, enemyPosition.top + enemySize,
+                enemyPosition.left + enemySize * .3f, enemyPosition.top + enemySize};
+
+        if (!groundEnemy) {
+            Matrix transform = new Matrix();
+            transform.setRotate(-15, enemyPosition.centerX(), enemyPosition.centerY());
+            transform.postTranslate(-enemySize * .1f, -enemySize * .1f);
+            transform.mapPoints(bounds);
+        }
     }
 
     @Override
@@ -101,16 +113,16 @@ class Enemy extends CollisionObject {
 
     @Override
     void collide(PointF normal) {
-    }
+        offSetPosition((int) normal.x, (int) -normal.y);
+        velY = 0;
 
-    void flip(boolean flip) {
-        if (!flipped == flip) {
+        if (normal.x * velX < 0) {
             flipped = !flipped;
+            //reflect bounds
             for (int i = 0; i < bounds.length; i += 2) {
                 bounds[i] = 2 * enemyPosition.centerX() - bounds[i];
             }
-            if (flipped) velX = Math.abs(velX);
-            else velX = -Math.abs(velX);
+            velX *= -1;
         }
     }
 
@@ -126,9 +138,5 @@ class Enemy extends CollisionObject {
 
     boolean canRemove() {
         return opacity.getAlpha() == 0;
-    }
-
-    double getVelX() {
-        return velX;
     }
 }

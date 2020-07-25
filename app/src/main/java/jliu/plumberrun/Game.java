@@ -258,7 +258,9 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                     enemies.remove(i--);
                 } else {
                     enemies.get(i).update();
-                    levelCreator.setEnemyMovement(enemies.get(i));
+                    for (Tile tile : levelCreator.getSurroundingTiles(enemies.get(i).getBounds())) {
+                        levelCreator.updateCollisions(enemies.get(i), tile, true);
+                    }
                 }
             }
 

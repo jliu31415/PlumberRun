@@ -16,7 +16,8 @@ class Player extends CollisionObject {
     private final double maxSpeedX = Constants.playerMaxSpeedX;
     private final double jumpVel = Constants.playerJumpVel;
     private double velX, velY;
-    private int frameCount = 0, pauseCount = 0;
+    private double frameCount = 0;
+    private int pauseCount = 0;
     private int freeFallCounter = 0, jumpCounter = 0;
     private boolean initialized = false;
     private boolean airborne = true, jumpLatch = false;
@@ -44,23 +45,24 @@ class Player extends CollisionObject {
 
     void update() {
         if (initialized) {
+            double frameIncrement = .5; //slow down fps
             if (!throwing) {
                 frameCount = frameCount % 10;
             } else {
                 if (frameCount == 16 && windUp) frameCount--;
                 else if (!windUp && pauseCount++ == 1) {   //slow down release animation
-                    frameCount--;
+                    frameCount -= frameIncrement;
                     pauseCount = 0;
                 }
                 if (frameCount == 19) throwing = false;
             }
 
             if (flipped) {
-                spriteFrame.offsetTo(spriteSize * (4 - frameCount % 5), spriteSize * (frameCount / 5));
+                spriteFrame.offsetTo(spriteSize * (int) (4 - frameCount % 5), spriteSize * (int) (frameCount / 5));
             } else {
-                spriteFrame.offsetTo(spriteSize * (frameCount % 5), spriteSize * (frameCount / 5));
+                spriteFrame.offsetTo(spriteSize * (int) (frameCount % 5), spriteSize * (int) (frameCount / 5));
             }
-            frameCount++;
+            frameCount += frameIncrement;
 
             if (freeFallCounter++ > 5) airborne = true; //cannot jump when in free fall
 
@@ -74,12 +76,12 @@ class Player extends CollisionObject {
             else gravity = Constants.playerGravity;
 
             if (velX < maxSpeedX) velX += (maxSpeedX - velX) / 10;
-            velY = Math.max(velY + gravity, -jumpVel);
+            velY = Math.max(velY + gravity, -jumpVel * .75);
 
             if (!slowMotion)
                 offSetPosition((int) velX, (int) -velY);
             else
-                offSetPosition((int) (velX / maxSpeedX), (int) (-velY / maxSpeedX));   //normalize with maxSpeedX
+                offSetPosition((int) (velX / maxSpeedX), 0);   //normalize with maxSpeedX
         }
     }
 
@@ -143,7 +145,7 @@ class Player extends CollisionObject {
         offSetPosition((int) normal.x, (int) -normal.y);
 
         velX = maxSpeedX * normal.y / Math.hypot(normal.x, normal.y);
-        if (Math.abs(normal.y / Math.hypot(normal.x, normal.y)) > .707)  //only "set" velY for low-incline slopes (45-degree threshold)
+        if (Math.abs(normal.y / Math.hypot(normal.x, normal.y)) > .707)  //only "set" velY for low-incline slopes (45-degree threshold inclusive)
             velY = velX * -normal.x / normal.y;
 
         if (normal.y > 0) {

@@ -37,8 +37,8 @@ class LevelCreator {
         for (int col = Game.cameraFrame.left / Constants.tileSize; col <= Game.cameraFrame.right / Constants.tileSize; col++) {
             if (col >= level.size() + levelIndexOffset) {
                 addFragment();
-                break;
             }
+
             for (int row = 0; row < level.get(col - levelIndexOffset).length; row++) {
                 int id = level.get(col - levelIndexOffset)[row];
                 if (0 < id && id < 16) {
@@ -47,7 +47,7 @@ class LevelCreator {
                     spriteFrame.offsetTo(framePosX, framePosY);
                     tilePosition.offsetTo(col * Constants.tileSize, row * Constants.tileSize);
                     canvas.drawBitmap(tileSprites, spriteFrame, tilePosition, null);
-                } else if (id == 50) {
+                } else if (id == 50 || id == 51) {
                     boolean create = true;
                     for (Enemy e : game.getInitializedEnemies()) {
                         if (e.getInitializedPosition().equals(col * Constants.tileSize, row * Constants.tileSize)) {
@@ -56,7 +56,7 @@ class LevelCreator {
                         }
                     }
                     if (create) {
-                        game.addEnemy(new Enemy(toilet_sprites, col * Constants.tileSize, row * Constants.tileSize));
+                        game.addEnemy(new Enemy(toilet_sprites, id == 50, col * Constants.tileSize, row * Constants.tileSize));
                     }
                 }
             }
@@ -72,7 +72,7 @@ class LevelCreator {
         level.addAll(levelFragment);
     }
 
-    boolean updateCollisions(CollisionObject collisionObject1, CollisionObject collisionObject2, boolean offsetObject) {
+    boolean updateCollisions(CollisionObject collisionObject1, CollisionObject collisionObject2, boolean collisionActive) {
         float[] bounds1 = collisionObject1.getBounds();
         float[] bounds2 = collisionObject2.getBounds();
         PointF offset1 = getProjectionOffset(bounds2, bounds1);
@@ -93,12 +93,13 @@ class LevelCreator {
             offset1.y *= -1;    //invert y component for consistency
 
             if (collisionObject2 instanceof Tile) {
+                //check if Tile is "accessible" to collisionObject1
                 if (tileCollisionInvalid((Tile) collisionObject2, offset1)) {
-                    offsetObject = false;
+                    collisionActive = false;
                 }
             }
 
-            if (offsetObject) collisionObject1.collide(offset1);
+            if (collisionActive) collisionObject1.collide(offset1);
             return true;
         }
         return false;
@@ -212,23 +213,5 @@ class LevelCreator {
         } while (coordinateX != minX || coordinateY != minY);
 
         return surroundingTiles;
-    }
-
-    void setEnemyMovement(Enemy enemy) {
-        try {
-            int coordinateX = (int) (enemy.getPosition().centerX() + Math.copySign(Constants.tileSize, enemy.getVelX()));
-            int coordinateY = enemy.getPosition().top;
-
-            int tileID = level.get(coordinateX / Constants.tileSize - levelIndexOffset)[coordinateY / Constants.tileSize];
-            if (Tile.isTile(tileID)) enemy.flip(enemy.getVelX() < 0);
-
-            tileID = level.get(coordinateX / Constants.tileSize - levelIndexOffset)[coordinateY / Constants.tileSize + 1];
-            if (Tile.isTile(tileID)) enemy.flip(enemy.getVelX() < 0);
-
-            tileID = level.get(coordinateX / Constants.tileSize - levelIndexOffset)[coordinateY / Constants.tileSize + 2];
-            if (tileID == 0) enemy.flip(enemy.getVelX() < 0);
-        } catch (IndexOutOfBoundsException e) {
-            e.printStackTrace();
-        }
     }
 }

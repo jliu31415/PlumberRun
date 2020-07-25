@@ -7,7 +7,7 @@ import android.view.SurfaceHolder;
 class GameLoop extends Thread {
     private final Game game;
     private final SurfaceHolder surfaceHolder;
-    private final static double TARGET_UPS = 35;
+    private final static double TARGET_UPS = 60;
     private double averageUPS, averageFPS;
     private boolean running = true, paused = false;
 
