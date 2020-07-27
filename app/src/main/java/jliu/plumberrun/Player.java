@@ -13,13 +13,12 @@ class Player extends CollisionObject {
     private float[] bounds; //bounding points
     private final int spriteSize;   //spriteWidth = spriteHeight
     private static final int playerSize = Constants.playerSize;
-    private final double maxSpeedX = Constants.playerMaxSpeedX;
+    private double maxSpeedX;
     private final double jumpVel = Constants.playerJumpVel;
     private double velX, velY;
     private double frameCount = 0;
-    private int pauseCount = 0;
     private int freeFallCounter = 0, jumpCounter = 0;
-    private boolean initialized = false;
+    private boolean alive = true;
     private boolean airborne = true, jumpLatch = false;
     private boolean windUp = false, throwing = false;
     private boolean slowMotion = false;
@@ -44,17 +43,17 @@ class Player extends CollisionObject {
     }
 
     void update() {
-        if (initialized) {
+        if (alive) {
             double frameIncrement = .5; //slow down fps
+
             if (!throwing) {
                 frameCount = frameCount % 10;
             } else {
-                if (frameCount == 16 && windUp) frameCount--;
-                else if (!windUp && pauseCount++ == 1) {   //slow down release animation
-                    frameCount -= frameIncrement;
-                    pauseCount = 0;
+                if (frameCount == 16 && windUp) frameCount -= frameIncrement;
+                if (frameCount == 25) {
+                    throwing = false;
+                    frameCount = 0;
                 }
-                if (frameCount == 19) throwing = false;
             }
 
             if (flipped) {
@@ -62,6 +61,7 @@ class Player extends CollisionObject {
             } else {
                 spriteFrame.offsetTo(spriteSize * (int) (frameCount % 5), spriteSize * (int) (frameCount / 5));
             }
+
             frameCount += frameIncrement;
 
             if (freeFallCounter++ > 5) airborne = true; //cannot jump when in free fall
@@ -162,11 +162,21 @@ class Player extends CollisionObject {
     }
 
     void initialize() {
-        initialized = true;
+        alive = true;
+        maxSpeedX = Constants.playerMaxSpeedX;
         playerPosition = new Rect(-2 * playerSize, Game.cameraFrame.height() / 2,
                 -playerSize, Game.cameraFrame.height() / 2 + playerSize);
         velX = maxSpeedX;
         velY = 0;
         setBounds();
+    }
+
+    void die() {
+        alive = false;
+        maxSpeedX = velX = velY = 0;
+    }
+
+    boolean isAlive() {
+        return alive;
     }
 }

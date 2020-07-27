@@ -27,7 +27,6 @@ import java.util.Scanner;
 class Game extends SurfaceView implements SurfaceHolder.Callback {
     private final GameLoop gameLoop;
     private final ArrayList<ArrayList<Integer[]>> levelFragments;
-    private int fragmentOffset;
     private final LevelCreator levelCreator;
     private final Player player;
     private final PlungerType plunger;
@@ -38,7 +37,9 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     private Rect jumpButton;
     private RectF slowMotionBar;
     private Paint white;
-    private Paint typeFace;
+    private Paint typeFace, fadeTypeFace;
+    private int score;
+    private int levelSize;
     private long startTime = 0;
     private double slowDuration = 1000;
     private boolean slowMotion = false;
@@ -68,6 +69,10 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
         white = new Paint();
         white.setColor(Color.WHITE);
+        fadeTypeFace = new Paint();
+        fadeTypeFace.setTypeface(getResources().getFont(R.font.chelsea_market));
+        fadeTypeFace.setTextSize(100);
+        fadeTypeFace.setTextAlign(Paint.Align.CENTER);
         typeFace = new Paint();
         typeFace.setTypeface(getResources().getFont(R.font.chelsea_market));
         typeFace.setTextSize(100);
@@ -202,17 +207,17 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
             canvas.translate(-slowMotionBar.left, -slowMotionBar.top);
         }
 
-        if (typeFace.getAlpha() > 0) {
-            canvas.drawText("Touch to Start", cameraFrame.centerX(), cameraFrame.centerY(), typeFace);
-        }
+        if (fadeTypeFace.getAlpha() > 0)
+            canvas.drawText("Touch to Start", cameraFrame.width() / 2.0f, cameraFrame.height() / 2.0f, fadeTypeFace);
+
+        if (player.getPosition().centerX() > 0)
+            canvas.drawText(score + "", cameraFrame.width() / 2.0f, cameraFrame.height() / 10.0f, typeFace);
     }
 
     void update() {
-        int totalOffsetX = player.getPosition().left - cameraFrame.width() / 5;
-        totalOffsetX = Math.max(totalOffsetX, 0);
-        cameraFrame.offset((totalOffsetX - cameraFrame.left) / 5, 0);   //linear interpolate
+        if (levelStarted && player.isAlive()) {
+            cameraFrame.offsetTo(Math.max(player.getPosition().left - cameraFrame.width() / 5, 0), 0);
 
-        if (levelStarted) {
             player.update();
             for (Tile tile : levelCreator.getSurroundingTiles(player.getBounds())) {
                 levelCreator.updateCollisions(player, tile, true);
@@ -264,7 +269,16 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                 }
             }
 
-            typeFace.setAlpha(Math.max(typeFace.getAlpha() - Constants.fade, 0));
+            fadeTypeFace.setAlpha(Math.max(fadeTypeFace.getAlpha() - Constants.fade, 0));
+
+            score = Math.max(0, player.getPosition().centerX() / 10);
+        } else {
+            if (!levelStarted) {
+                //animate to next screen
+                cameraFrame.offset((levelSize - cameraFrame.left) / 10, 0);  //linear interpolation
+                if (levelSize - cameraFrame.left < 10) cameraFrame.offsetTo(levelSize, 0);
+                //when camera.left == levelSize, translate back to origin in resetLevel()
+            }
         }
     }
 
@@ -306,13 +320,22 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
         levelStarted = false;
         gameInProgress = true;
+        levelSize = levelCreator.totalLevelSize();
+        while (cameraFrame.left != levelSize) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        levelSize = 0;
+        levelCreator.resetLevel();
+        cameraFrame.offsetTo(0, 0);
         player.initialize();
-        fragmentOffset = 0;
-        levelCreator.initializeLevel(levelFragments.get(0));
         plungers.clear();
         enemies.clear();
         enemiesInitialized.clear();
-        typeFace.setAlpha(255);
+        fadeTypeFace.setAlpha(255);
     }
 
     boolean hasStarted() {
@@ -329,10 +352,12 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
     boolean checkPlayerDeath() {
         if (player.getPosition().left > 0 && !Rect.intersects(cameraFrame, player.getPosition())) {
+            player.die();
             return true;
         } else {
             for (Enemy e : enemies) {
                 if (!e.isDead() && levelCreator.updateCollisions(player, e, false)) {
+                    player.die();
                     return true;
                 }
             }

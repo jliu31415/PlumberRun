@@ -7,8 +7,8 @@ final class Constants {
 
     static final int playerSize = tileSize * 2;
     static final double playerMaxSpeedX = tileSize / 7.0;
-    static final double playerJumpVel = tileSize / 2.3;
-    static final double playerGravity = -tileSize / 38.0;
+    static final double playerJumpVel = tileSize / 3.0;
+    static final double playerGravity = -tileSize / 60.0;
 
     static final int plungerHeight = tileSize * 2;
     static final double plungerSpeed = tileSize / 2.6;

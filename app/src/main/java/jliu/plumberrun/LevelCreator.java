@@ -25,17 +25,13 @@ class LevelCreator {
         tilePosition = new Rect(0, 0, Constants.tileSize, Constants.tileSize);
     }
 
-    void initializeLevel(ArrayList<Integer[]> levelFragment) {
-        level.clear();
-        level.addAll(levelFragment);
-        levelIndexOffset = 0;
-    }
-
     void draw(Canvas canvas) {
         int framePosX, framePosY;
 
-        for (int col = Game.cameraFrame.left / Constants.tileSize; col <= Game.cameraFrame.right / Constants.tileSize; col++) {
-            if (col >= level.size() + levelIndexOffset) {
+        for (int col = (int) Math.floor((double) Game.cameraFrame.left / Constants.tileSize);   //floor function for when camera.left is < 0
+             col <= Game.cameraFrame.right / Constants.tileSize; col++) {
+
+            if (col - levelIndexOffset >= level.size()) {
                 addFragment();
             }
 
@@ -63,13 +59,22 @@ class LevelCreator {
         }
     }
 
-    private void addFragment() {
-        ArrayList<Integer[]> levelFragment = game.newFragment();
-        if (level.size() + levelFragment.size() >= 128) {    //clean list
+    void addFragment() {
+        ArrayList<Integer[]> levelFragment = game.newFragment();    //random fragment
+        if (level.size() + levelFragment.size() >= 20) {    //clean list
             level.subList(0, Game.cameraFrame.left / Constants.tileSize - levelIndexOffset).clear();
             levelIndexOffset = Game.cameraFrame.left / Constants.tileSize;
         }
         level.addAll(levelFragment);
+    }
+
+    void resetLevel() {
+        level.clear();
+        levelIndexOffset = 0;
+    }
+
+    int totalLevelSize() {
+        return Constants.tileSize * (levelIndexOffset + level.size());
     }
 
     boolean updateCollisions(CollisionObject collisionObject1, CollisionObject collisionObject2, boolean collisionActive) {

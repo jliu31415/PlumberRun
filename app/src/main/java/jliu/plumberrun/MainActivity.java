@@ -230,8 +230,6 @@ public class MainActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                currentGame.resumeGame();
-
                 menuButton.setClickable(false);
                 replayButton.setClickable(false);
                 continueButton.setClickable(false);
@@ -258,7 +256,6 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
                 scaleAnim(findViewById(R.id.pop_up_container), true);
-                currentGame.pauseGame();
             }
         }).start();
     }
