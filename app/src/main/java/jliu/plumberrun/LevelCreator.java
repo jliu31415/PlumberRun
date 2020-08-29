@@ -13,55 +13,57 @@ class LevelCreator {
     private int levelIndexOffset;
     private final Bitmap tileSprites, toilet_sprites;
     private Rect tilePosition, spriteFrame;
-    private final int spriteSize; //tile spriteWidth = spriteHeight
+    private final int tileSpriteSize; //tile sprite width = sprite height
 
     LevelCreator(Game game, Bitmap tileSprites, Bitmap toilet_sprites) {
         this.game = game;
         level = new ArrayList<>();
         this.tileSprites = tileSprites;
         this.toilet_sprites = toilet_sprites;
-        spriteSize = tileSprites.getWidth() / 5;
-        spriteFrame = new Rect(0, 0, spriteSize, spriteSize);
+        tileSpriteSize = tileSprites.getWidth() / 5;
+        spriteFrame = new Rect(0, 0, tileSpriteSize, tileSpriteSize);
         tilePosition = new Rect(0, 0, Constants.tileSize, Constants.tileSize);
     }
 
     void draw(Canvas canvas) {
         int framePosX, framePosY;
 
-        for (int col = (int) Math.floor((double) Game.cameraFrame.left / Constants.tileSize);   //floor function for when camera.left is < 0
-             col <= Game.cameraFrame.right / Constants.tileSize; col++) {
+        synchronized (this) {   //synchronized with translateToOrigin()
+            for (int col = (int) Math.floor((double) Game.cameraFrame.left / Constants.tileSize);   //floor function for when camera.left is < 0
+                 col <= Game.cameraFrame.right / Constants.tileSize; col++) {
 
-            if (col - levelIndexOffset >= level.size()) {
-                addFragment();
-            }
+                if (col - levelIndexOffset >= level.size()) {
+                    addFragment();
+                }
 
-            for (int row = 0; row < level.get(col - levelIndexOffset).length; row++) {
-                int id = level.get(col - levelIndexOffset)[row];
-                if (0 < id && id < 16) {
-                    framePosX = spriteSize * (--id % 5);
-                    framePosY = spriteSize * (id / 5);
-                    spriteFrame.offsetTo(framePosX, framePosY);
-                    tilePosition.offsetTo(col * Constants.tileSize, row * Constants.tileSize);
-                    canvas.drawBitmap(tileSprites, spriteFrame, tilePosition, null);
-                } else if (id == 50 || id == 51) {
-                    boolean create = true;
-                    for (Enemy e : game.getInitializedEnemies()) {
-                        if (e.getInitializedPosition().equals(col * Constants.tileSize, row * Constants.tileSize)) {
-                            create = false;
-                            break;
+                for (int row = 0; row < level.get(col - levelIndexOffset).length; row++) {
+                    int id = level.get(col - levelIndexOffset)[row];
+                    if (0 < id && id < 16) {
+                        framePosX = tileSpriteSize * (--id % 5);
+                        framePosY = tileSpriteSize * (id / 5);
+                        spriteFrame.offsetTo(framePosX, framePosY);
+                        tilePosition.offsetTo(col * Constants.tileSize, row * Constants.tileSize);
+                        canvas.drawBitmap(tileSprites, spriteFrame, tilePosition, null);
+                    } else if (id == 50 || id == 51) {
+                        boolean create = true;
+                        for (Enemy e : game.getInitializedEnemies()) {
+                            if (e.getInitializedPosition().equals(col * Constants.tileSize, row * Constants.tileSize)) {
+                                create = false;
+                                break;
+                            }
                         }
-                    }
-                    if (create) {
-                        game.addEnemy(new Enemy(toilet_sprites, id == 50, col * Constants.tileSize, row * Constants.tileSize));
+                        if (create) {
+                            game.addEnemy(new Enemy(toilet_sprites, id == 50, col * Constants.tileSize, row * Constants.tileSize));
+                        }
                     }
                 }
             }
         }
     }
 
-    void addFragment() {
+    private void addFragment() {
         ArrayList<Integer[]> levelFragment = game.newFragment();    //random fragment
-        if (level.size() + levelFragment.size() >= 20) {    //clean list
+        if (level.size() + levelFragment.size() >= 256) {    //clean list
             level.subList(0, Game.cameraFrame.left / Constants.tileSize - levelIndexOffset).clear();
             levelIndexOffset = Game.cameraFrame.left / Constants.tileSize;
         }
@@ -71,10 +73,6 @@ class LevelCreator {
     void resetLevel() {
         level.clear();
         levelIndexOffset = 0;
-    }
-
-    int totalLevelSize() {
-        return Constants.tileSize * (levelIndexOffset + level.size());
     }
 
     boolean updateCollisions(CollisionObject collisionObject1, CollisionObject collisionObject2, boolean collisionActive) {

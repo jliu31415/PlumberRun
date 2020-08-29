@@ -83,6 +83,40 @@
                 android:visibility="invisible"
                 app:srcCompat="@drawable/replay_button" />
 
+            <TextView
+                android:id="@+id/game_paused"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="130dp"
+                android:fontFamily="@font/chelsea_market"
+                android:text="@string/game_paused"
+                android:textColor="@color/yellow"
+                android:textSize="35sp" />
+
+            <TextView
+                android:id="@+id/game_over"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="130dp"
+                android:fontFamily="@font/chelsea_market"
+                android:text="@string/game_over"
+                android:textColor="@color/yellow"
+                android:textSize="35sp"
+                android:visibility="invisible" />
+
+            <TextView
+                android:id="@+id/score"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="200dp"
+                android:fontFamily="@font/chelsea_market"
+                android:text="@string/score"
+                android:textColor="@color/yellow"
+                android:textSize="50sp" />
+
         </RelativeLayout>
 
     </RelativeLayout>

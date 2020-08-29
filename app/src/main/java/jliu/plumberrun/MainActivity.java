@@ -16,6 +16,7 @@ import android.view.animation.DecelerateInterpolator;
 import android.view.animation.ScaleAnimation;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -124,9 +125,14 @@ public class MainActivity extends AppCompatActivity {
                     continueButton.setClickable(true);
                     menuButton.clearColorFilter();
                     continueButton.clearColorFilter();
+
                     replayButton.setVisibility(View.INVISIBLE);
-                    currentGame.pauseGame();
+                    findViewById(R.id.game_paused).setVisibility(View.VISIBLE);
+                    findViewById(R.id.game_over).setVisibility(View.INVISIBLE);
+                    ((TextView) findViewById(R.id.score)).setText(currentGame.getScore());
                     scaleAnim(findViewById(R.id.pop_up_container), true);
+
+                    currentGame.pauseGame();
                 }
             }
         });
@@ -249,12 +255,17 @@ public class MainActivity extends AppCompatActivity {
                 replayButton.setClickable(true);
                 menuButton.clearColorFilter();
                 replayButton.clearColorFilter();
+
                 context.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         replayButton.setVisibility(View.VISIBLE);
+                        findViewById(R.id.game_paused).setVisibility(View.INVISIBLE);
+                        findViewById(R.id.game_over).setVisibility(View.VISIBLE);
+                        ((TextView) findViewById(R.id.score)).setText(currentGame.getScore());
                     }
                 });
+
                 scaleAnim(findViewById(R.id.pop_up_container), true);
             }
         }).start();

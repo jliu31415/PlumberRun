@@ -34,12 +34,14 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
     private ArrayList<Enemy> enemies;   //enemies to draw and update
     private ArrayList<Enemy> enemiesInitialized;    //enemies that have already been initialized
     static final Rect cameraFrame = new Rect();
+    private int cameraOffset;
     private Rect jumpButton;
     private RectF slowMotionBar;
+    private Rect cloudPosition;
+    private Bitmap cloud_sprite;
     private Paint white;
     private Paint typeFace, fadeTypeFace;
-    private int score;
-    private int levelSize;
+    private long score;
     private long startTime = 0;
     private double slowDuration = 1000;
     private boolean slowMotion = false;
@@ -57,6 +59,7 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         Bitmap grass_tile_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.grass_tile_sprites);
         Bitmap toilet_sprites = BitmapFactory.decodeResource(getResources(), R.drawable.toilet_sprites);
         Bitmap plunger_sprite = BitmapFactory.decodeResource(getResources(), R.drawable.plunger_sprite);
+        cloud_sprite = BitmapFactory.decodeResource(getResources(), R.drawable.cloud);
 
         levelFragments = new ArrayList<>();
         gameLoop = new GameLoop(this, surfaceHolder);
@@ -169,6 +172,9 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         cameraFrame.set(0, 0, canvasX, canvasY);
         jumpButton = new Rect(canvasX / 2, canvasY / 2, canvasX, canvasY);
         slowMotionBar = new RectF(canvasX / 20.0f, canvasY / 20.0f, canvasX / 3.0f, canvasY / 10.0f);
+        cloudPosition = new Rect(0, 0,
+                Constants.cloudWidth, Constants.cloudWidth * cloud_sprite.getHeight() / cloud_sprite.getWidth());
+        cloudPosition.offsetTo((int) (Math.random() * cameraFrame.width()), 0);
 
         synchronized (cameraFrame) {
             cameraFrame.notify();   //allow parseFragments() when cameraFrame is initialized;
@@ -199,6 +205,8 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
         }
         canvas.translate(cameraFrame.left, cameraFrame.top);
 
+        canvas.drawBitmap(cloud_sprite, null, cloudPosition, null);
+
         if (slowMotion) {
             canvas.translate(slowMotionBar.left, slowMotionBar.top);
             float ratio = (float) (1 - (System.currentTimeMillis() - startTime) / slowDuration);
@@ -216,8 +224,6 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
     void update() {
         if (levelStarted && player.isAlive()) {
-            cameraFrame.offsetTo(Math.max(player.getPosition().left - cameraFrame.width() / 5, 0), 0);
-
             player.update();
             for (Tile tile : levelCreator.getSurroundingTiles(player.getBounds())) {
                 levelCreator.updateCollisions(player, tile, true);
@@ -269,17 +275,18 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
                 }
             }
 
+            cloudPosition.offset(-Constants.cloudSpeed, 0);
+            if (cloudPosition.right < 0)
+                cloudPosition.offsetTo(cameraFrame.width(), 0);
+
             fadeTypeFace.setAlpha(Math.max(fadeTypeFace.getAlpha() - Constants.fade, 0));
 
-            score = Math.max(0, player.getPosition().centerX() / 10);
-        } else {
-            if (!levelStarted) {
-                //animate to next screen
-                cameraFrame.offset((levelSize - cameraFrame.left) / 10, 0);  //linear interpolation
-                if (levelSize - cameraFrame.left < 10) cameraFrame.offsetTo(levelSize, 0);
-                //when camera.left == levelSize, translate back to origin in resetLevel()
-            }
+            cameraOffset = Math.max(player.getPosition().left - cameraFrame.width() / 5, 0);
+
+            score = Math.max(0, player.getPosition().centerX() / Constants.tileSize);
         }
+
+        cameraFrame.offset((int) Math.ceil((cameraOffset - cameraFrame.left) / 10.0), 0);   //linear interpolation
     }
 
     //load fragments
@@ -320,17 +327,12 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
         levelStarted = false;
         gameInProgress = true;
-        levelSize = levelCreator.totalLevelSize();
-        while (cameraFrame.left != levelSize) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+
+        synchronized (levelCreator) {
+            levelCreator.resetLevel();
+            cameraFrame.offsetTo(0, 0);
+            cameraOffset = 0;
         }
-        levelSize = 0;
-        levelCreator.resetLevel();
-        cameraFrame.offsetTo(0, 0);
         player.initialize();
         plungers.clear();
         enemies.clear();
@@ -392,5 +394,9 @@ class Game extends SurfaceView implements SurfaceHolder.Callback {
 
     void endGameLoop() {
         gameLoop.endLoop();
+    }
+
+    public String getScore() {
+        return score + "";
     }
 }

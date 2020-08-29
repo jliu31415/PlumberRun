@@ -10,4 +10,7 @@
     <string name="cloud">Cloud</string>
     <string name="info">Info</string>
     <string name="replay_button">Replay</string>
+    <string name="game_paused">Game Paused</string>
+    <string name="game_over">Game Over</string>
+    <string name="score">Score</string>
 </resources>

@@ -17,4 +17,7 @@ final class Constants {
 
     static final int enemySize = (int) (tileSize * 2.5);  //extra space in bitmap needed for propeller
     static final double enemySpeed = tileSize / 20.0;
+
+    static final int cloudWidth = 5 * tileSize;
+    static final int cloudSpeed = tileSize / 50;
 }
